@@ -2,12 +2,8 @@
 <html lang="en">
 
 <head>
-  <title>Harish Shankar</title>
-
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Primary SEO -->
   <meta name="description"
     content="Harish Shankar is a UMass Amherst graduate in Computer Science, Mathematics, and Philosophy. Research in algorithms, AI, combinatorial game theory, and computer science education.">
   <meta name="author" content="Harish Shankar">
@@ -17,25 +13,83 @@
   <!-- Open Graph (for social + LLM scraping) -->
   <meta property="og:title" content="Harish Shankar">
   <meta property="og:description"
-    content="Computer Science, Mathematics & Philosophy student at UMass Amherst. Research in algorithms, AI, and game theory.">
+    content="Computer Science, Mathematics &amp; Philosophy graduate from UMass Amherst. Research in algorithms, AI, and game theory.">
   <meta property="og:type" content="website">
-  <!-- <meta property="og:url" content="https://harish-shankar.github.io/"> -->
+  <meta property="og:url" content="https://harish-shankar.github.io/">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Harish Shankar">
-  <meta name="twitter:description" content="Computer Science, Mathematics & Philosophy student at UMass Amherst.">
+  <meta name="twitter:description" content="Computer Science, Mathematics &amp; Philosophy graduate at UMass Amherst.">
 
   <!-- Canonical -->
-  <!-- <link rel="canonical" href="https://harish-shankar.vercel.app/"> -->
+  <link rel="canonical" href="https://harish-shankar.github.io/">
 
-  <!-- Fonts -->
-  <!-- <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet"> -->
-
-  <!-- <link href="styles.css" rel="stylesheet"> -->
+  <title>Harish Shankar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Spline+Sans+Mono:wght@500;600&amp;display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-  <h1>Hello World</h1>
+  <nav class="site-nav" aria-label="Primary navigation">
+    <a href="/blog">blog</a>
+    <span>·</span>
+    <a href="https://github.com/Harish-Shankar">github</a>
+    <span>·</span>
+    <a href="https://x.com/hrsh_maxxing">twitter</a>
+    <span>·</span>
+    <a href="https://www.last.fm/user/harish105">lastfm</a>
+    <span>·</span>
+    <a href="https://open.spotify.com/user/xd7nl2bjkf0xqq5ogvkop0hye">spotify</a>
+  </nav>
+
+  <div class="page-layout">
+    <main class="content">
+      <header>
+        <h1>Harish Shankar</h1>
+      </header>
+
+      <div class="bio">
+        <p>Hello! I recently graduated from UMass Amherst in Computer Science, Pure Math, and Philosophy. I completed my
+          honors thesis under <a href="https://sites.google.com/site/acmonsterqiao/">Mingda Qiao</a>. I was previously
+          doing research under <a href="https://www.cyruscousins.online/">Cyrus Cousins</a>.</p>
+
+        <p>I am interested in the architecture and design choices of language models and making them good for society.
+          In parallel, I also want to continue working on learning theory and theoretical computer science in general.</p>
+
+        <p>I spent most of the past year working on <a href="https://trysquire.com/">Squire</a> (with <a
+            href="https://amansharma.site/">Aman</a>). Squire was our vision for AI assistants at work and everyday life.
+          It began with us tinkering with fine-tuning (and also distillation) to make a general-purpose assistant
+          that lived on our laptops. We were targeting small models that we could fine-tune for specific tasks and then
+          swap them for the task at hand (our crude version of agent orchestration). We realized that local inference
+          wasn't worth the limitations it posed for our use cases. The excitement was more technical awe at
+          how far it had come along.</p>
+
+        <p>We transitioned to turning Squire into the AI assistant for all admin work. You could text, call, or email
+          Squire and it took care of scheduling, mailing, researching, coordinating, and filling out forms. More <a
+            href="https://trysquire.com/why/">here</a>.</p>
+
+        <p>Squire, which effectively concluded as a harness, shut down in March 2026. Retention was poor, and none of the
+          pivots in front of us were exciting enough to justify forcing it. I'd rather work on interesting tech than grind
+          on something I don't believe in. I learned a lot and know what I would do differently next time.</p>
+      </div>
+    </main>
+
+    <aside class="currently" aria-labelledby="currently-title">
+      <div class="currently-heading">
+        <h2 id="currently-title">Currently working on</h2>
+        <time datetime="2026-08">Aug. 2026</time>
+      </div>
+      <ul>
+        <li>A genealogy of language models</li>
+        <li>Topological signatures of on-policy distillation</li>
+      </ul>
+    </aside>
+  </div>
 </body>
+
 </html>
