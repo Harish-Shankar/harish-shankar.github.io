@@ -310,60 +310,95 @@
 
 .code-block {
   position: relative;
-  margin: 38px 0;
+  margin: 28px 0;
   overflow: hidden;
-  border: 1px solid rgba(35, 34, 31, 0.14);
-  border-radius: 4px;
-  background: #e9e3d7;
+  border: 1px solid #343434;
+  border-radius: 5px;
+  background: #1e1e1e;
+  box-shadow: 0 5px 16px rgba(35, 34, 31, 0.1);
 }
 
 .code-block figcaption {
-  padding: 8px 13px;
-  border-bottom: 1px solid rgba(35, 34, 31, 0.1);
-  color: rgba(35, 34, 31, 0.55);
-  font-family: 'Spline Sans Mono', ui-monospace, monospace;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  border-bottom: 1px solid #2b2b2b;
+  background: #181818;
+  color: #a8a8a8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: lowercase;
 }
 
 .code-block pre {
   margin: 0;
-  padding: 20px;
+  padding: 10px 0 12px;
   overflow-x: auto;
+  color: #d4d4d4;
+  tab-size: 4;
 }
 
 .code-block code {
-  font-family: 'Spline Sans Mono', ui-monospace, monospace;
-  font-size: 13px;
-  line-height: 1.65;
+  display: block;
+  min-width: max-content;
+  counter-reset: code-line;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+
+.code-block .code-line {
+  display: block;
+  min-height: 1.45em;
+  padding: 0 14px 0 0;
+  counter-increment: code-line;
+  white-space: pre;
+}
+
+.code-block .code-line::before {
+  display: inline-block;
+  width: 2.6em;
+  margin-right: 11px;
+  color: #858585;
+  content: counter(code-line);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  user-select: none;
+}
+
+.code-block .code-line:hover {
+  background: rgba(255, 255, 255, 0.035);
 }
 
 .code-block .token.comment {
-  color: #74736c;
+  color: #6a9955;
   font-style: italic;
 }
 
 .code-block .token.keyword {
-  color: #175f80;
-  font-weight: 600;
+  color: #c586c0;
+  font-weight: 400;
 }
 
 .code-block .token.builtin {
-  color: #765080;
+  color: #dcdcaa;
 }
 
 .code-block .token.constant,
 .code-block .token.number {
-  color: #925c1d;
+  color: #b5cea8;
 }
 
 .code-block .token.string {
-  color: #356b42;
+  color: #ce9178;
 }
 
 .code-block .token.operator {
-  color: #8a3f3a;
+  color: #d4d4d4;
 }
 
 .math-inline {
