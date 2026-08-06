@@ -80,11 +80,16 @@ function renderPost(post, buildTimestamp) {
         <h1>${escapeHtml(metadata.title)}</h1>
         ${metadata.description ? `<p class="article-deck">${escapeHtml(metadata.description)}</p>` : ''}
       </header>
+      <nav class="section-marker" aria-label="Current article section" hidden>
+        <span class="section-marker__level" aria-hidden="true"></span>
+        <a class="section-marker__link" href="#"></a>
+      </nav>
       <div class="markdown-body">
 ${articleHtml}
       </div>
     </article>
   </main>
+  <script src="/blog/blog.js"></script>
 </body>
 </html>
 `;
