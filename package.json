@@ -1,0 +1,12 @@
+{
+  "name": "harish-shankar-website",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-blog.js",
+    "prepare:pages": "node scripts/prepare-pages.js",
+    "test": "node --test tests/markdown.test.js"
+  },
+  "dependencies": {
+    "katex": "^0.18.1"
+  }
+}

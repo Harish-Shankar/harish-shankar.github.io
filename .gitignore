@@ -1,0 +1,5 @@
+node_modules/
+_site/
+blog/index.html
+blog/*/index.html
+blog/vendor/

@@ -174,6 +174,18 @@ h1 {
   padding-bottom: 0;
 }
 
+.currently a {
+  color: inherit;
+  text-decoration-color: rgba(7, 94, 47, 0.4);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.currently a:hover {
+  color: #075e2f;
+  text-decoration-color: #075e2f;
+}
+
 a:focus-visible {
   outline: 2px solid #17657f;
   outline-offset: 4px;
