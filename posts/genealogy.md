@@ -47,7 +47,7 @@ This weighted average $z_i$ is the output of attention for token $i$.
 Let’s go back to our sentence
 > "The chicken did not cross the street because it had no legs."
 
-Suppose, the query emitted by **it** is
+Suppose, the query emitted by "it" is
 $$
 	q_{\text{it}} = \begin{bmatrix}1 & 0\end{bmatrix},
 $$

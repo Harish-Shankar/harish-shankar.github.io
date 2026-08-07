@@ -131,6 +131,7 @@
 }
 
 .markdown-body {
+  counter-reset: h3-heading;
   color: #23221f;
   font-size: 20px;
   line-height: 1.68;
@@ -160,18 +161,39 @@
 }
 
 .markdown-body h2 {
+  counter-reset: h3-heading;
   margin: 64px 0 20px;
   font-size: 34px;
   letter-spacing: -0.018em;
 }
 
+.markdown-body h2::before {
+  margin-right: 0.22em;
+  color: #17657f;
+  content: '\00a7';
+  font-weight: 500;
+}
+
 .markdown-body h3 {
+  counter-increment: h3-heading;
   margin: 48px 0 16px;
   font-size: 27px;
   font-style: italic;
   font-weight: 500;
   letter-spacing: -0.012em;
   line-height: 1.1;
+}
+
+.markdown-body h3::before {
+  margin-right: 0.75em;
+  color: #17657f;
+  content: counter(h3-heading);
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 0.36em;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  vertical-align: 0.35em;
 }
 
 .markdown-body h4 {
