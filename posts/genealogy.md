@@ -31,27 +31,31 @@ When we read the word *it*, both *trophy* and *suitacse* are gramatically plausi
 The Transformer replaces this chain with direct communication. Instead of requiring information at one position to be repeatedly propagated to every position between it and its destination, self-attention permits one position to directly retrieve information from another.
 
 ### Attention
-The central operation is easier to understand as retrieval than as cognition. Suppose a token needs information from the rest of the sequence. It emits a **query** describing what it is looking for. Every token exposes a **key** describing what kind of information it contains and a **value** containing the information it will return if selected.
+The central operation is easier to understand as retrieval than as cognition. Suppose a token needs information from the rest of the sequence. It emits a **query** describing what it is looking for. Every token produces a **key**, against which queries can be compared, and a **value**, containing the information that will actually be retrieved.
 
 For each token representation $x_i \in \mathbb{R}^{d_{\text{model}}}$, the model learns three linear projections:
 $$
 	q_i = x_i W^Q, \quad k_i = x_i W^K, \quad v_i = x_i W^V.
 $$
-The words **query, key,** and **value** should not be taken too literally and are not indicative of any linguistic concepts (as far as I know). The matrices $W^Q$, $W^K$, and $W^V$ are learned through gradient descent. If resolving pronouns is useful for predicting text, the attention mechanism may learn queries and keys that make pronouns compatible with plausible antecedents.
+The words **query, key,** and **value** should not be taken too literally and are not indicative of any linguistic concepts (as far as I know). That is, there is no column in $W^Q$ that corresponds to say pronoun antecedent. These matrices begin as parameters and are learned through gradient descent. If some rule or subtask is useful to the task, the attention mechanism may learn queries and keys that make pronouns compatible with plausible antecedents.
 
-The compatibility between a query $q_i$ and a key $k_j$ is measured by their dot product:
+Given a query $q_i$ and the key $k_j$ of some other token, compatibility is measured as
 $$
 	s_{ij} = q_i k_j^\top.
 $$
-The scores are converted into a probability distribution with a softmax:
+A larger dot product means that, in the representation learned by this particular attention head, the two vectors are more compatible. The scores are converted into a probability distribution with a softmax:
 $$
 	\alpha_{ij} = \frac{\exp(s_{ij})}{\sum_{m=1}^{n} \exp(s_{im})}.
 $$
-Finally, token $i$ receives a weighted average of the values: 
+The resulting $\alpha_{ij}$ are nonnegative and sum to one. Finally, we use them to form a weighted average of the values:
 $$
 	z_i = \sum_{j=1}^{n} \alpha_{ij}v_j.
 $$
-This weighted average $z_i$ is the output of attention for token $i$.
+That weighted sum is the output of attention for position $i$.
+
+So attention does two separate things:
+1. $QK^\top$ determines where to retrieve from.
+2. Multiplication by $V$ determines what information is retrieved.
 
 #### A worked example
 Let’s go back to our sentence
