@@ -128,4 +128,4 @@ $$
 	qk = \sum_{i=1}^{d_k}q_ik_i,
 $$
 where each product has variance $1$; thus, the variance of the sum is $\Var(qk) = d_k$ and consequently the standrd deviation is $\sqrt{d_k}$. As $d_k$ grows, the dot products naturally become larger in magnitude. Given enough large logits, softmax and its ouput become  one-hot distributions where exactly one element is one and all other elements are zero, representing categorical data or discrete outcomes as vectors, making optimizaition fragile. The paper introduces the $1/\sqrt{d_k}$ factor precisely to counteract this effect.
-:::progress
+:::progress 2026-08-08T06:45:50.125Z
