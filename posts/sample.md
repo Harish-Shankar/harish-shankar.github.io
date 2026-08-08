@@ -19,7 +19,7 @@ Margin notes hold useful context without interrupting the main argument. Place t
 ### A third-level heading
 
 #### A fourth-level heading
-:::progress
+:::progress 2026-08-08T06:24:05.000Z
 
 ##### A fifth-level heading
 
@@ -64,4 +64,4 @@ Vaswani et al. **Attention Is All You Need.** 2017. [arXiv](https://arxiv.org/ab
 
 Progress markers can separate writing sessions without implying that the post is finished.
 
-:::progress
+:::progress 2026-08-08T06:24:05.000Z

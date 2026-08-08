@@ -12,17 +12,6 @@ const ROOT = path.resolve(__dirname, '..');
 const POSTS_DIRECTORY = path.join(ROOT, 'posts');
 const BLOG_DIRECTORY = path.join(ROOT, 'blog');
 
-function formatDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return value || '';
-  const [year, month, day] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(year, month - 1, day)));
-}
-
 function navigation() {
   return `<nav class="site-nav" aria-label="Primary navigation">
     <a href="/">home</a>
@@ -100,7 +89,6 @@ function renderBlogIndex(posts) {
         <li>
           <a href="/blog/${escapeHtml(slug)}">
             <span>${escapeHtml(metadata.title)}</span>
-            <time datetime="${escapeHtml(metadata.date)}">${escapeHtml(formatDate(metadata.date))}</time>
           </a>
           ${metadata.description ? `<p>${escapeHtml(metadata.description)}</p>` : ''}
         </li>`).join('');
@@ -126,13 +114,19 @@ function renderBlogIndex(posts) {
 }
 
 function build() {
-  const buildTimestamp = process.env.BUILD_TIMESTAMP || new Date().toISOString();
+  const requestedBuildTimestamp = process.env.BUILD_TIMESTAMP || new Date().toISOString();
+  const parsedBuildTimestamp = new Date(requestedBuildTimestamp);
+  if (Number.isNaN(parsedBuildTimestamp.getTime())) throw new Error('BUILD_TIMESTAMP is invalid.');
+  const buildTimestamp = parsedBuildTimestamp.toISOString();
   const filenames = fs.readdirSync(POSTS_DIRECTORY)
     .filter((filename) => filename.endsWith('.md') && !filename.startsWith('_'))
     .sort();
 
   const posts = filenames.map((filename) => {
-    const source = fs.readFileSync(path.join(POSTS_DIRECTORY, filename), 'utf8');
+    const sourcePath = path.join(POSTS_DIRECTORY, filename);
+    const originalSource = fs.readFileSync(sourcePath, 'utf8');
+    const source = originalSource.replace(/^([ \t]*):::progress[ \t]*$/gm, `$1:::progress ${buildTimestamp}`);
+    if (source !== originalSource) fs.writeFileSync(sourcePath, source);
     const parsed = parseMarkdown(source);
     const slug = path.basename(filename, '.md');
     if (!parsed.metadata.title || !parsed.metadata.date) {

@@ -546,10 +546,7 @@
 }
 
 .post-list a {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 24px;
+  display: block;
   color: #151512;
   font-size: 24px;
   text-decoration: none;
@@ -560,15 +557,6 @@
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
-}
-
-.post-list time {
-  flex: 0 0 auto;
-  color: rgba(35, 34, 31, 0.5);
-  font-family: 'Spline Sans Mono', ui-monospace, monospace;
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .post-list p {
@@ -668,12 +656,4 @@
     min-height: 200px;
   }
 
-  .post-list a {
-    display: block;
-  }
-
-  .post-list time {
-    display: block;
-    margin-top: 8px;
-  }
 }

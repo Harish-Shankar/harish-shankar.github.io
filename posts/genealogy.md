@@ -106,23 +106,20 @@ scores = (query @ keys.T) / np.sqrt(keys.shape[-1])
 weights = np.exp(scores - scores.max(axis=-1, keepdims=True))
 weights /= weights.sum(axis=-1, keepdims=True)
 ```
-
 Of course, attending strongly to *trophy* is useless unless there is something useful to retrieve from it. This is the role of the values. If its corresponding value is $v_{\text{trophy}}$, then it receives approximately
 $$
 	 0.874v_{\text{trophy}} + 0.043v_{\text{large}} + 0.039v_{\text{suitcase}} + 0.043v_{\text{because}}.
 $$
 The representation at *it* has therefore been updated with information largely taken from *trophy*.
 
-#### Scaling terms
-The paper's actual attention equation includes a scaling term:
+#### Scaled dot-product attention
+The paper's actual attention equation is
 $$
 	\operatorname{Attention}(Q,K,V)= \operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right)V.
 $$
-Suppose the coordinates of $q$ and $k$ are independent, centered random variables i.e. mean is zero with variance one. Their dot product is
+Rather than computing attention for one query at a time, we stack every query, key, and value into a matrix
 $$
-	q \cdot k = \sum_{r=1}^{d_k} q_r k_r.
+	Q = \mathbb{R}^{n \times d_k}, K = \mathbb{R}^{n \times d_k}, V = \mathbb{R}^{n \times d_v},
 $$
-Thus, each product has variance approximately one and the variance of the sum is roughly $d_k$. Its typical magnitude would consequently grow $\sqrt{d_k}$. As the key dimension increases, unscaled dot products become larger in magnitude.
-
-Large logits push softmax toward nearly one-hot distributions where exactly one element is one and all other elements are zero, representing categorical data or discrete outcomes as vectors, making optimizaition fragile. Dividing by $\sqrt{d_k}$ keeps the score scale roughly stable.
-:::progress
+respectively. Then, $QK^\top \in \mathbb{R}^{n \times n}$ is populated by the compatibility score between every pair of positions. Row $i$ tells us where position $i$ wants to look. After applying the row-wise softmax, multiplying by $V$ performs all of the operations simultaneously.
+:::progress 2026-08-08T06:24:05.000Z
