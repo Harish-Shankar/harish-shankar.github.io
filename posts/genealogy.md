@@ -59,50 +59,59 @@ So attention does two separate things:
 
 #### A worked example
 Let’s go back to our sentence
-> "The chicken did not cross the street because it had no legs."
+> "Because the trophy was too large for the suitcase, it did not fit."
+Imagine that we are looking at one attention head in some later layer of the network. By this point, the representation of *it* contains contextual information from previous layers. This head has learned something useful for resolving which earlier object the current token is referring to.
 
 Suppose, the query emitted by "it" is
 $$
-	q_{\text{it}} = \begin{bmatrix}1 & 0\end{bmatrix},
+	q_{\text{it}} = \begin{bmatrix}2 & 1 & -1\end{bmatrix}.
 $$
-and the keys being considered are
+And suppose four earlier positions expose the following keys:
 $$
 	K = 
 	\begin{bmatrix}
-	1.0 & 0.0 \\
-	0.1 & 0.2 \\
-	0.0 & 1.0 \\
-	0.8 & 0.1
-	\end{bmatrix},
+		1.8 & 0.8 & -0.8\\
+		0.2 & 0.1 & 0.5\\
+		0.3 & 0.5 & 1.3\\
+		0 & 0 & 0
+	\end{bmatrix}
 $$
-corresponding to *animals, cross, street,* and *legs*. The unscaled dot products are
-$$
-	q_{\text{it}}K^\top =
-	\begin{bmatrix}
-		1.0 & 0.1 & 0.0 & 0.8
-	\end{bmatrix}.
-$$
-We can then apply softmax and obtain a distribution where most of the mass is found in *chicken* and *legs*. Attention constructs a new representation of **it** by retrieving a mixture of information from positions that its query finds relevant.
+corresponding respectively to *trophy, large, suitcase,* and *beacause*. I have deliberately chosen tiny vectors so that we can work out the arithmetic; the individual coordinates should not be interpreted as actual concepts learned by a Transformer.
 
+The dot product is
+$$
+	q_{\text{it}}K^\top = \begin{bmatrix} 5.2 & 0 & -0.2 & 0 \end{bmatrix}
+$$
+Already, the query is much more compatible with trophy than with suitcase. After applying the scaling factor ($\sqrt{d_k}$) used in the actual Transformer,
+$$
+	\frac{q_{\text{it}}K^\top}{\sqrt{3}} \approx \begin{bmatrix} 3 & 0 & -0.12 & 0 \end{bmatrix}
+$$
+Softmax turns these scores into approximately
+$$
+	\begin{bmatrix} 0.874 & 0.043 & 0.039 & 0.043 \end{bmatrix}
+$$
+Informally, we can conclude that $87\%$ of this head's retrieval is coming from the representation associated with *trophy*. We produce this computation in python in the following snippet
 ```python
 import numpy as np
 
-query = np.array([[1.0, 0.0]])
-keys = np.array(
-    [
-        [1.0, 0.0],  # animal
-        [0.1, 0.2],  # cross
-        [0.0, 1.0],  # street
-        [0.8, 0.1],  # tired
-    ]
-)
+query = np.array([[2.0, 1.0, -1.0]])
+keys = np.array([
+    [1.8, 0.8, -0.8],   # trophy
+    [0.2, 0.1,  0.5],   # large
+    [0.3, 0.5,  1.3],   # suitcase
+    [0.0, 0.0,  0.0],   # because
+])
 
-scores = query @ keys.T
+scores = (query @ keys.T) / np.sqrt(keys.shape[-1])
 weights = np.exp(scores - scores.max(axis=-1, keepdims=True))
 weights /= weights.sum(axis=-1, keepdims=True)
-
-print(weights.round(3))
 ```
+
+Of course, attending strongly to *trophy* is useless unless there is something useful to retrieve from it. This is the role of the values. If its corresponding value is $v_{\text{trophy}}$, then it receives approximately
+$$
+	 0.874v_{\text{trophy}} + 0.043v_{\text{large}} + 0.039v_{\text{suitcase}} + 0.043v_{\text{because}}.
+$$
+The representation at *it* has therefore been updated with information largely taken from *trophy*.
 
 #### Scaling terms
 The paper's actual attention equation includes a scaling term:

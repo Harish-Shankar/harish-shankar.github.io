@@ -197,10 +197,20 @@
 }
 
 .markdown-body h4 {
-  margin: 38px 0 14px;
-  font-size: 18px;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
+  margin: 42px 0 15px;
+  font-size: 23px;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.15;
+}
+
+.markdown-body h4::before {
+  margin-right: 0.55em;
+  color: #17657f;
+  content: '\2014';
+  font-style: normal;
+  font-weight: 500;
 }
 
 .markdown-body h5 {
