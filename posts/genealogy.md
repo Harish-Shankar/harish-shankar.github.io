@@ -95,12 +95,14 @@ Informally, we can conclude that $87\%$ of this head's retrieval is coming from 
 import numpy as np
 
 query = np.array([[2.0, 1.0, -1.0]])
-keys = np.array([
-    [1.8, 0.8, -0.8],   # trophy
-    [0.2, 0.1,  0.5],   # large
-    [0.3, 0.5,  1.3],   # suitcase
-    [0.0, 0.0,  0.0],   # because
-])
+keys = np.array(
+    [
+        [1.8, 0.8, -0.8],  # trophy
+        [0.2, 0.1, 0.5],  # large
+        [0.3, 0.5, 1.3],  # suitcase
+        [0.0, 0.0, 0.0],  # because
+    ]
+)
 
 scores = (query @ keys.T) / np.sqrt(keys.shape[-1])
 weights = np.exp(scores - scores.max(axis=-1, keepdims=True))
@@ -127,5 +129,81 @@ The last part of the question is the scaling factor $\sqrt{d_k}$. Suppose the co
 $$
 	qk = \sum_{i=1}^{d_k}q_ik_i,
 $$
-where each product has variance $1$; thus, the variance of the sum is $\Var(qk) = d_k$ and consequently the standrd deviation is $\sqrt{d_k}$. As $d_k$ grows, the dot products naturally become larger in magnitude. Given enough large logits, softmax and its ouput become  one-hot distributions where exactly one element is one and all other elements are zero, representing categorical data or discrete outcomes as vectors, making optimizaition fragile. The paper introduces the $1/\sqrt{d_k}$ factor precisely to counteract this effect.
-:::progress 2026-08-08T06:45:50.125Z
+where each product has variance $1$; thus, the variance of the sum is $\operatorname{Var}(qk) = d_k$ and consequently the standrd deviation is $\sqrt{d_k}$. As $d_k$ grows, the dot products naturally become larger in magnitude. Given enough large logits, softmax and its ouput become  one-hot distributions where exactly one element is one and all other elements are zero, representing categorical data or discrete outcomes as vectors, making optimizaition fragile. The paper introduces the $1/\sqrt{d_k}$ factor precisely to counteract this effect.
+:::progress 2026-08-08T12:18:45.429Z
+
+### Multi-head attention
+In the example worked above, the attention mecahanism offers a response to a single question, "what does *it* refer to?" In any given sentence, it seems almost undeniable that there are a plethora of relations between each token, and it would be in our best interest to model most of them. Compressing all of those patterns into a single weighted average would force them to compete.
+
+Therefore, the Transformer therefore runs several attention operations in parallel. For head $i$:
+$$
+	\operatorname{head}_i = \operatorname{Attention}(QW_i^Q, KW_i^K, VW_i^V).
+$$
+The outputs are concatenated and projected back into the model dimension:
+$$
+	\operatorname{MultiHead}(Q,K,V) = \operatorname{Concat}(\operatorname{head}_1, \ldots, \operatorname{head}_h)W^O,
+$$
+:::note
+The base Transformer used $d_{\text{model}} = 512, h=8, d_k=d_v=64$. Notice that $h \cdot d_k = d_{\text{model}}$
+:::
+where each head gets its own learned projections and therefore its own representation space in which to decide what counts as relevant. The representation is projected into smaller spaces for each head, the heads operate in parallel, and their outputs are recombined.
+
+### Self-attention
+The term self-attention simply means that $Q$, $K$, and $V$ originate from the same sequence.
+
+Let $X = \langle x_1, \ldots, x_n \rangle$. Then we know $Q=XW^Q,K=XW^K,V=XW^V$. Every position therefore asks a question of every position in the same sequence including itself.
+
+This is subtly different from the attention mechanisms that had commonly appeared in encoder-decoder systems before the Transformer. There, attention often allowed the decoder to look back at representations produced by the encoder. The Transformer retains this kind of cross-attention, but also uses attention as the mechanism by which representations inside the encoder and decoder themselves communicate.
+
+The original architecture consequently contains three forms of attention:
+1. encoder self-attention
+2. masked decoder self-attention
+3. encoder-decoder cross-attention.
+That distinction matters because modern language models will eventually discard two-thirds of this architecture (can you guess which one?).
+
+#### A conundrum
+There is an immediate problem with replacing recurrence: positionality. An RNN gets position almost for free. The first token is processed first, the second token second, and so forth. Its computation itself contains an ordering; self-attention does not.
+
+If we ignore the positions of our tokens, then permuting the rows of $X$ simply permutes the rows of the output, but that shouldn't be the case. We want the sentence
+> dog bites man
+to mean a completely different thing than the sentence
+> man bites dog.
+Thus, we need to add positions into the process. The paper does this by adding a positional encoding to each token embedding before it enters the Transformer stack.
+
+### Positional encoding
+For position $\operatorname{pos}$ and dimension $i$, define the following sinusoidal functions
+$$
+	\operatorname{PE}_{(\operatorname{pos}, 2i)} = \sin \left( \frac{\operatorname{pos}}{10000^{2i/d_{\text{model}}}} \right)
+$$
+and
+$$
+	\operatorname{PE}_{(\operatorname{pos}, 2i+1)} = \cos \left( \frac{\operatorname{pos}}{10000^{2i/d_{\text{model}}}} \right).
+$$
+By design, the positional vector produced has the same dimensionality as the token embedding, so we can just set $x_{\operatorname{pos}} = e_{\text{token}} + \operatorname{PE}_{\operatorname{pos}}$.
+
+Recall your trig identities
+$$
+	\sin((\alpha + \beta)\omega) = \sin(\alpha\omega)\cos(\beta\omega) + \cos(\alpha\omega)\cos(\alpha\omega)
+$$
+and
+$$
+	\cos((\alpha + \beta)\omega) = \cos(\alpha\omega)\cos(\beta\omega) - \sin(\alpha\omega)\sin(\beta\omega).
+$$
+Thus, once the sine and cosine at position $p$ are known, the encoding at position $p+k$ can be expressed as a linear transformation of the functions whose coefficients depend only on $k$: "for any fixed offset $k$, $\operatorname{PE}_{p+k}$ can be represented as a linear function of $\operatorname{PE}_p$, potentially making relative positions easy for attention layers to learn."
+
+As we move forward, positional encoding will be reinvented repeatedly.
+
+### The rest
+The original Transformer is an encoder-decoder model designed primarily for sequence transduction. For a given input sequence of symbol representations $x = \langle x_1, \ldots, x_n \rangle$ it produces a sequence of continuous representation $z = \langle z_1, \ldots, z_n \rangle$. The decoder then autoregressively generates an output sequence $y = \langle y_1, \ldots, y_m \rangle$.
+
+Each encoder layer contains:
+1. multi-head self-attention
+2. a position-wise feed-forward network
+Each decoder layer contains:
+1. masked multi-head self-attention
+2. multi-head cross-attention over the encoder
+3. a position-wise feed-forward network
+
+Around every sublayer, the original Transformer uses a residual connection followed by layer normalization: $\operatorname{LayerNorm}(x + \operatorname{Sublayer}(x))$.
+:::progress 2026-08-08T13:13:29.654Z
+>>>>>>> 51d1f6c (multi-head, self, pos, rest)
