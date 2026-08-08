@@ -206,4 +206,3 @@ Each decoder layer contains:
 
 Around every sublayer, the original Transformer uses a residual connection followed by layer normalization: $\operatorname{LayerNorm}(x + \operatorname{Sublayer}(x))$.
 :::progress 2026-08-08T13:13:29.654Z
->>>>>>> 51d1f6c (multi-head, self, pos, rest)
