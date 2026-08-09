@@ -122,7 +122,7 @@ $$
 $$
 Rather than computing attention for one query at a time, we stack every query, key, and value into a matrix
 $$
-	Q = \mathbb{R}^{n \times d_k}, K = \mathbb{R}^{n \times d_k}, V = \mathbb{R}^{n \times d_v},
+	Q \in \mathbb{R}^{n \times d_k}, K \in \mathbb{R}^{n \times d_k}, V \in \mathbb{R}^{n \times d_v},
 $$
 respectively. Then, $QK^\top \in \mathbb{R}^{n \times n}$ is populated by the compatibility score between every pair of positions. Row $i$ tells us where position $i$ wants to look. After applying the row-wise softmax, multiplying by $V$ performs all of the operations simultaneously.
 
@@ -184,7 +184,7 @@ By design, the positional vector produced has the same dimensionality as the tok
 
 Recall your trig identities
 $$
-	\sin((\alpha + \beta)\omega) = \sin(\alpha\omega)\cos(\beta\omega) + \cos(\alpha\omega)\cos(\alpha\omega)
+	\sin((\alpha + \beta)\omega) = \sin(\alpha\omega)\cos(\beta\omega) + \cos(\alpha\omega)\cos(\beta\omega)
 $$
 and
 $$
