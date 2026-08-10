@@ -442,3 +442,4 @@ Much of the subsequent history of language-model architecture and systems engine
 
 We are left with one question:
 > **how does it learn anything?**
+:::progress 2026-08-10T06:20:25.608Z
