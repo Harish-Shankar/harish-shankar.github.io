@@ -4,7 +4,7 @@
   "scripts": {
     "build": "node scripts/build-blog.js",
     "prepare:pages": "node scripts/prepare-pages.js",
-    "test": "node --test tests/markdown.test.js"
+    "test": "node --test"
   },
   "dependencies": {
     "katex": "^0.18.1"

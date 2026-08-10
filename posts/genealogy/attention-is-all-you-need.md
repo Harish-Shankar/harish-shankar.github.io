@@ -2,6 +2,10 @@
 title: The genealogy of language models 
 date: 2026-08-06
 description: An account of language model progress. 
+timezone: Asia/Kolkata
+series: genealogy
+series_order: 1
+permalink: genealogy
 ---
 
 # The genealogy of language models
