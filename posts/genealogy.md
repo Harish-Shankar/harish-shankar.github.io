@@ -33,31 +33,36 @@ The Transformer proposes something much more direct:
 > let every position communicate with every other position.
 
 ### Attention
-The central operation is easier to understand as retrieval than as cognition. Suppose a token needs information from the rest of the sequence. It emits a **query** describing what it is looking for. Every token produces a **key**, against which queries can be compared, and a **value**, containing the information that will actually be retrieved.
+The central operation is easier to understand as retrieval than as cognition. Suppose a token needs information from the rest of the sequence. It emits a **query** describing what it is looking for. Every token exposes a **key**, against which queries can be compared, and a **value**, containing the information that will actually be retrieved.
 
 For each token representation $x_i \in \mathbb{R}^{d_{\text{model}}}$, the model learns three linear projections:
 $$
 	q_i = x_i W^Q, \quad k_i = x_i W^K, \quad v_i = x_i W^V.
 $$
-The words **query, key,** and **value** should not be taken too literally and are not indicative of any linguistic concepts (as far as I know). That is, there is no column in $W^Q$ that corresponds to say pronoun antecedent. These matrices begin as parameters and are learned through gradient descent. If some rule or subtask is useful to the task, the attention mechanism may learn queries and keys that make pronouns compatible with plausible antecedents.
+The words **query, key,** and **value** should not be taken too literally. They are not predefined linguistic objects. There is no column of $W^Q$ labelled *pronoun antecedent* or one column of $W^K$ labelled *subject of sentence*. The matrices begin as parameters and are learned through gradient descent. If identifying antecedents is useful for minimizing the training objective, the model may discover representations in which certain queries become highly compatible with certain keys.
 
-Given a query $q_i$ and the key $k_j$ of some other token, compatibility is measured as
+Given the query $q_i$ at one position and the key $k_j$ at another, compatibility score is measured as
 $$
 	s_{ij} = q_i k_j^\top.
 $$
-A larger dot product means that, in the representation learned by this particular attention head, the two vectors are more compatible. The scores are converted into a probability distribution with a softmax:
+A large value means, loosely, that position $j$ appears relevant to whatever position $i$ is looking for.
+
+We convert the collection of scores into nonnegative weights using softmax:
 $$
 	\alpha_{ij} = \frac{\exp(s_{ij})}{\sum_{m=1}^{n} \exp(s_{im})}.
 $$
-The resulting $\alpha_{ij}$ are nonnegative and sum to one. Finally, we use them to form a weighted average of the values:
+The resulting weights satisfy $\alpha_{ij} \ge 0$ and $\sum_j \alpha_{ij}=1$.
+
+
+Finally, we retrieve the corresponding values:
 $$
 	z_i = \sum_{j=1}^{n} \alpha_{ij}v_j.
 $$
 That weighted sum is the output of attention for position $i$.
 
-So attention does two separate things:
-1. $QK^\top$ determines where to retrieve from.
-2. Multiplication by $V$ determines what information is retrieved.
+So attention does two conceptually distinct things:
+1. $QK^\top$ determines **where information should come from**.
+2. Multiplication by $V$ determines **what information is actually passed onward**.
 
 #### A worked example
 Let’s go back to our sentence
@@ -78,21 +83,22 @@ $$
 		0 & 0 & 0
 	\end{bmatrix}
 $$
-corresponding respectively to *trophy, large, suitcase,* and *because*. I have deliberately chosen tiny vectors so that we can work out the arithmetic; the individual coordinates should not be interpreted as actual concepts learned by a Transformer.
+corresponding respectively to *trophy*, *large*, *suitcase*, and *because*. :::note  I have deliberately chosen tiny vectors so that we can work out the arithmetic. :::
+The individual coordinates should not be interpreted as actual concepts learned by a Transformer.
 
-The dot product is
+The compatibility scores are
 $$
 	q_{\text{it}}K^\top = \begin{bmatrix} 5.2 & 0 & -0.2 & 0 \end{bmatrix}
 $$
-Already, the query is much more compatible with trophy than with suitcase. After applying the scaling factor ($\sqrt{d_k}$) used in the actual Transformer,
+Already, the query is much more compatible with *trophy* than with *suitcase*. The actual Transformer scales these scores before applying softmax:
 $$
 	\frac{q_{\text{it}}K^\top}{\sqrt{3}} \approx \begin{bmatrix} 3 & 0 & -0.12 & 0 \end{bmatrix}
 $$
-Softmax turns these scores into approximately
+Softmax turns these scaled scores into approximately
 $$
 	\begin{bmatrix} 0.874 & 0.043 & 0.039 & 0.043 \end{bmatrix}
 $$
-Informally, we can conclude that $87\%$ of this head's retrieval is coming from the representation associated with *trophy*. We produce this computation in python in the following snippet
+Informally, about $87\%$ of this head's retrieval is coming from the representation associated with *trophy*. We produce this computation in python in the following snippet
 ```python
 import numpy as np
 
@@ -110,72 +116,115 @@ scores = (query @ keys.T) / np.sqrt(keys.shape[-1])
 weights = np.exp(scores - scores.max(axis=-1, keepdims=True))
 weights /= weights.sum(axis=-1, keepdims=True)
 ```
-Of course, attending strongly to *trophy* is useless unless there is something useful to retrieve from it. This is the role of the values. If its corresponding value is $v_{\text{trophy}}$, then it receives approximately
+Of course, attending strongly to *trophy* is useless unless there is something useful to retrieve from it. This is the role of the values. If its corresponding value is $v_{\text{trophy}},v_{\text{large}},\ldots$, the resulting vector is
 $$
 	 0.874v_{\text{trophy}} + 0.043v_{\text{large}} + 0.039v_{\text{suitcase}} + 0.043v_{\text{because}}.
 $$
-The representation at *it* has therefore been updated with information largely taken from *trophy*.
+The representation at *it* has therefore been updated with information largely from *trophy*.
+
+Attention does not copy another token's representation. It retrieves a learned projection of that representation, $v_j=x_jW^V$, and mixes it with projected information from other positions. What gets communicated is itself learned.
 
 #### Scaled dot-product attention
 The paper's actual attention equation is
 $$
 	\operatorname{Attention}(Q,K,V)= \operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right)V.
 $$
-Rather than computing attention for one query at a time, we stack every query, key, and value into a matrix
+Rather than computing one query at a time, we pack all queries, keys, and values into matrices. For a self-attention layer over a sequence of length $n$,
 $$
-	Q \in \mathbb{R}^{n \times d_k}, K \in \mathbb{R}^{n \times d_k}, V \in \mathbb{R}^{n \times d_v},
+	Q \in \mathbb{R}^{n \times d_k}, K \in \mathbb{R}^{n \times d_k}, V \in \mathbb{R}^{n \times d_v}.
 $$
-respectively. Then, $QK^\top \in \mathbb{R}^{n \times n}$ is populated by the compatibility score between every pair of positions. Row $i$ tells us where position $i$ wants to look. Attention mechanisms before the Transformer often used a small neural network to compute compatibility between a query and a key. Dot-product attention instead reduces the entire problem to matrix multiplication. Softmax then converts each row into positive weights summing to one. We finally multiply by $V$, to obtain the associated values of the attention mechanism.
+Then, $QK^\top \in \mathbb{R}^{n \times n}$. Entry $(i,j)$ is the compatibility between the the query at position $i$ and the key at position $j$. Row $i$ therefore contains every place position $i$ might retrieve information from.
+
+Attention mechanisms before the Transformer often used a small neural network to compute compatibility between a query and a key. Dot-product attention instead reduces the entire problem to matrix multiplication.
+
+Softmax then converts each row into positive weights summing to one. We finally multiply by $V$, to obtain the associated weights of the attention mechanism.
 > The keys are not themselves the information being returned. Queries and keys determine where information flows; values determine what flows.
 
-The last part of the equation is the scaling factor $\sqrt{d_k}$.
+The last part of the equation is the scaling factor $1/\sqrt{d_k}$.
 
-	Suppose the coordinates of $q$ and $k$ are independent random variables with mean $0$ and variance $1$. Then
+Suppose the components of $q$ and $k$ are independent random variables with mean $0$ and variance $1$. Their dot product is
 $$
 	qk = \sum_{i=1}^{d_k}q_ik_i,
 $$
-where each product has variance $1$; thus, the variance of the sum is $\operatorname{Var}(qk) = d_k$ and consequently the standard deviation is $\sqrt{d_k}$. As $d_k$ grows, the dot products naturally become larger in magnitude. Given enough large logits, softmax and its output become  one-hot distributions where exactly one element is one and all other elements are zero, representing categorical data or discrete outcomes as vectors, making optimization fragile. The paper introduces the $1/\sqrt{d_k}$ factor precisely to counteract this effect. :::progress 2026-08-08T12:18:45.429Z :::
+where each product has variance $1$; thus, the variance of the sum is $\operatorname{Var}(qk) = d_k$ and consequently the standard deviation is $\sqrt{d_k}$. 
+
+As dimensionality $d_k$ grows, the dot products naturally become larger in magnitude. Applying softmax are large logits makes it output saturated, tending towards one-hot distributions where exactly one element is one and all other elements are zero. :::note representing categorical data or discrete outcomes as vectors. ::: In those regions, gradients through the softmax can become extremely small—making optimization difficult. The paper introduces the $1/\sqrt{d_k}$ factor precisely to counteract this effect. :::progress 2026-08-08T12:18:45.429Z :::
 
 ### Multi-head attention
-In the example worked above, the attention mechanism offers a response to a single question, "what does *it* refer to?" In any given sentence, it seems almost undeniable that there are a plethora of relations between each token, and it would be in our best interest to model most of them. Compressing all of those patterns into a single weighted average would force them to compete.
+> One set of attention weights produces one weighted average.
+
+In the example worked above, the attention mechanism offers a response to a single question, "what does *it* refer to?" But language contains many relationships simultaneously. A token will necessarily require information about positional relationships, syntax, punctuation, grammar, any number of other features. Compressing all of those patterns into a single weighted average would force them to compete.
 
 Therefore, the Transformer therefore runs several attention operations in parallel. For head $i$:
 $$
 	\operatorname{head}_i = \operatorname{Attention}(QW_i^Q, KW_i^K, VW_i^V).
 $$
-The outputs are concatenated and projected back into the model dimension:
+The outputs are concatenated and projected back into the model dimension
 $$
-	\operatorname{MultiHead}(Q,K,V) = \operatorname{Concat}(\operatorname{head}_1, \ldots, \operatorname{head}_h)W^O,
+	\operatorname{MultiHead}(Q,K,V) = \operatorname{Concat}(\operatorname{head}_1, \ldots, \operatorname{head}_h)W^O.
 $$
-:::note
-The base Transformer used $d_{\text{model}} = 512, h=8, d_k=d_v=64$. Notice that $h \cdot d_k = d_{\text{model}}$
-:::
-where each head gets its own learned projections and therefore its own representation space in which to decide what counts as relevant. The representation is projected into smaller spaces for each head, the heads operate in parallel, and their outputs are recombined.
+Each head receives its own learned projections $W_i^Q,W_i^K,W_i^V$. It therefore gets its own representation space in which to decide what counts as relevant and what information ought to be returned. :::note The base Transformer used $d_{\text{model}} = 512, h=8, d_k=d_v=64$. Notice that $h \cdot d_k = d_{\text{model}}$. Thus each head works in a $64$-dimensional query/key/value space, and the eight $64$-dimensional outputs concatenate back to $512$ dimensions before the final output projection. :::
+
+This construction gives us a better way of understanding an attention head. A head is not merely "looking at a token." It consists of:
+1. a learned query projection defining what a position searches for
+2. a learned key projection defining how candidate positions advertise themselves
+3. a learned value projection defining what information those positions provide
+4. an attention pattern deciding where to retrieve from
+Different heads can therefore implement different communication patterns over the same sequence.
+
+There is a temptation here to anthropomorphize individual heads. Some heads do display remarkably interpretable patterns, and the original paper includes examples of heads tracking syntactic relationships. But nothing in the architecture requires one head to correspond cleanly to one linguistic or human concept. The safer interpretation is simply that
+> multi-head attention gives the model multiple learned communication channels.
 
 ### Self-attention
-The term self-attention simply means that $Q$, $K$, and $V$ originate from the same sequence.
+The term **self-attention** describes where $Q$, $K$, and $V$ come from.
 
-Let $X = \langle x_1, \ldots, x_n \rangle$. Then we know $Q=XW^Q,K=XW^K,V=XW^V$. Every position therefore asks a question of every position in the same sequence including itself.
+Let
+$$
+	X = \langle x_1, \ldots, x_n \rangle \in \mathbb{R}^{n \times d_{\text{model}}}.
+$$
+In self-attention,
+$$
+	Q = XW^Q, K = XW^K, V = XW^V.
+$$
+The queries, keys, and values are all constructed from representations belonging to the same sequence. In encoder self-attention, every position may attend to every other position, including itself.
 
-This is subtly different from the attention mechanisms that had commonly appeared in encoder-decoder systems before the Transformer. There, attention often allowed the decoder to look back at representations produced by the encoder. The Transformer retains this kind of cross-attention, but also uses attention as the mechanism by which representations inside the encoder and decoder themselves communicate.
+This is subtly different from the attention mechanisms that had commonly appeared in encoder-decoder systems before the Transformer. There, attention often allowed the decoder to look back at representations produced by the encoder. he Transformer retains this operation, which we will call **cross-attention**, but also uses attention as the mechanism through which positions inside the encoder and decoder communicate with one another.
 
-The original architecture consequently contains three forms of attention:
+The original architecture consequently contains three applications of multi-head attention:
 1. encoder self-attention
 2. masked decoder self-attention
-3. encoder-decoder cross-attention.
-That distinction matters because modern language models will eventually discard two-thirds of this architecture (can you guess which one?).
+3. encoder-decoder cross-attention
+That distinction will matter enormously in a moment because the architecture eventually inherited by GPT discards the encoder and, with it, cross-attention entirely.
 
-#### A conundrum
+But first we have created a problem.
+
+#### The positionality problem
 There is an immediate problem with replacing recurrence: positionality. An RNN gets position almost for free. The first token is processed first, the second token second, and so forth. Its computation itself contains an ordering; self-attention does not.
 
-If we ignore the positions of our tokens, then permuting the rows of $X$ simply permutes the rows of the output, but that shouldn't be the case. We want the sentence
+Ignoring positional information, suppose we permute the sequence:
+$$
+	X' = PX
+$$
+where $P$ is some permutation matrix. :::note A permutation matrix is a square binary matrix that has exactly one entry of 1 in each row and each column, with all other entries being 0. Multiplying another matrix by a permutation matrix reorders its rows or columns. ::: Then,
+$$
+	Q = X'Q, K = X'K, V = X'V.
+$$
+The attention scores become
+$$
+	Q'K'^\top = PQK^\top P^\top. 
+$$
+The output is permuted in exactly the corresponding way. In other words, self-attention by itself knows that certain token representations exist but not its position in the sequence.
+
+This poses a problem because
 > dog bites man
-to mean a completely different thing than the sentence
+does not mean the same thing as
 > man bites dog.
-Thus, we need to add positions into the process. The paper does this by adding a positional encoding to each token embedding before it enters the Transformer stack.
+Thus, we need to add positions deliberately into the process.
 
 ### Positional encoding
-For position $\operatorname{pos}$ and dimension $i$, define the following sinusoidal functions
+The paper does this by adding a positional vector to each token embedding before it enters the Transformer stack.
+
+For position $\operatorname{pos}$ and dimension $i$,
 $$
 	\operatorname{PE}_{(\operatorname{pos}, 2i)} = \sin \left( \frac{\operatorname{pos}}{10000^{2i/d_{\text{model}}}} \right)
 $$
@@ -183,8 +232,20 @@ and
 $$
 	\operatorname{PE}_{(\operatorname{pos}, 2i+1)} = \cos \left( \frac{\operatorname{pos}}{10000^{2i/d_{\text{model}}}} \right).
 $$
-By design, the positional vector produced has the same dimensionality as the token embedding, so we can just set $x_{\operatorname{pos}} = e_{\text{token}} + \operatorname{PE}_{\operatorname{pos}}$.
+Because the positional encoding has dimension $d_{\text{model}}$, it can simply be added to the token embedding:
+$$
+	x_{\operatorname{pos}} = e_{\text{token}} + \operatorname{PE}_{\operatorname{pos}}.
+$$
 
+The first question one might reasonably ask is: why trigonometric functions?
+
+Each adjacent pair of positional dimensions forms a sine-cosine pair at some angular frequency $\omega$:
+$$
+	\begin{bmatrix}
+		\sin(\rho\omega)\\
+		\cos(\rho\omega)
+	\end{bmatrix}
+$$
 Recall your trig identities
 $$
 	\sin((\alpha + \beta)\omega) = \sin(\alpha\omega)\cos(\beta\omega) + \cos(\alpha\omega)\cos(\beta\omega)
@@ -193,19 +254,58 @@ and
 $$
 	\cos((\alpha + \beta)\omega) = \cos(\alpha\omega)\cos(\beta\omega) - \sin(\alpha\omega)\sin(\beta\omega).
 $$
-Thus, once the sine and cosine at position $p$ are known, the encoding at position $p+k$ can be expressed as a linear transformation of the functions whose coefficients depend only on $k$: "for any fixed offset $k$, $\operatorname{PE}_{p+k}$ can be represented as a linear function of $\operatorname{PE}_p$, potentially making relative positions easy for attention layers to learn."
+We can therefore write
+$$
+	\begin{bmatrix}
+		\sin((\alpha + \beta)\omega) \\
+		\cos((\alpha + \beta)\omega)
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+		\cos(\beta\omega) & \sin(\beta\omega) \\
+		-\sin(\beta\omega) & \cos(\beta\omega)
+	\end{bmatrix}
+	\begin{bmatrix}
+		\sin(\alpha\omega)\\
+		\cos(\alpha\omega)
+	\end{bmatrix}
+$$
+For any fixed displacement $\beta$, moving from the representation of position $\alpha$ to the representation of position $\alpha+\beta$ is therefore a linear transformation whose coefficients depend only on the displacement.
+
+The model does not merely receive a unique identifier for every position. The encoding is structured such that relationships like "five tokens earlier" can, in principle, be recovered using simple linear operations.
+
+The different dimensions use different frequencies. Some oscillate relatively quickly and distinguish nearby positions; others change very slowly and preserve information over larger distances. Taken together, they give every position a structured, multi-scale representation.
 
 As we move forward, positional encoding will be reinvented repeatedly.
 
-### The rest
-The original Transformer is an encoder-decoder model designed primarily for sequence transduction. For a given input sequence of symbol representations $x = \langle x_1, \ldots, x_n \rangle$ it produces a sequence of continuous representation $z = \langle z_1, \ldots, z_n \rangle$. The decoder then autoregressively generates an output sequence $y = \langle y_1, \ldots, y_m \rangle$.
+### The rest of the Transformer
+Technically, **attention is not, in fact, all you need.**
 
-Each encoder layer contains:
-1. multi-head self-attention
-2. a position-wise feed-forward network
-Each decoder layer contains:
-1. masked multi-head self-attention
-2. multi-head cross-attention over the encoder
-3. a position-wise feed-forward network
+The Transformer also contains feed-forward networks, residual connections, normalization, embeddings, positional information, and an output projection.
 
-Around every sub-layer, the original Transformer uses a residual connection followed by layer normalization: $\operatorname{LayerNorm}(x + \operatorname{Sublayer}(x))$. :::progress 2026-08-08T13:13:29.654Z :::
+The original Transformer is an encoder-decoder model. Given an input sequence  of symbol representations
+$$
+	x = \langle x_1, \ldots, x_n \rangle
+$$ 
+the encoder constructs a sequence of continuous representation
+$$
+	z = \langle z_1, \ldots, z_n \rangle.
+$$
+Conditioned on these representations, the decoder autoregressively generates an output sequence
+$$
+	y = \langle y_1, \ldots, y_m \rangle.
+$$
+The base model contains six encoder layers and six decoder layers.
+
+We will discuss what happens inside each.
+
+#### The position-wise feed-forward network
+Every encoder and decoder layer contains, in addition to attention, a small fully connected neural network:
+$$
+	\operatorname{FFN}(x) = \operatorname{ReLU}(xW_1 + b_i)W_2 + b_2.
+$$
+The first projection usually expands the dimension, generally by four times. So in the case of the paper, given that $d_{\text{model}} = 512$, they set $d_{\text{ff}} = 2048$. It then applies the ReLU function to replace all negative values with zero. Finally, the second matrix operations project it back into the original dimension.
+
+This network is applied independently to every sequence position, using the same parameters at every position. Given some $X$, the FFN transforms each row separately. There is no communication between tokens inside the feed-forward sublayer.
+> attention mixes information across positions; the feed-forward network transforms information within each position.
+:::progress 2026-08-10T05:35:42.580Z
