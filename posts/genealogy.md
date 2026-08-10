@@ -5,14 +5,14 @@ description: An account of language model progress.
 ---
 
 # The genealogy of language models
-This is my foray into surveying the landscape of modern language models. The intention is to recover all modern techniques and ideas and consolidate them here. The motivation behind doing so is rather selfish, in that I want to learn about this and understand why—this is not actively meant as an end-all resource. Also as I imagine as I delve further in this process, I will veer to topics that are adjacent but not at the core of language models; more so, techniques employed for SOTA models to make them better.
+This is my foray into surveying the landscape of modern language models. My aim is to recover the techniques and ideas behind modern systems and consolidate them here. The motivation is rather selfish: I want to understand why these systems work. This is not intended to be an end-all resource. As I delve further into the subject, I expect to veer into adjacent topics—especially the techniques used to improve state-of-the-art models.
 
 ## Attention is all you need
-Let us begin with the seminal work: :::cite Vaswani et al. **Attention Is All You Need.** 2017. [arXiv](https://arxiv.org/abs/1706.03762) ::: the reason I no longer write emails and every individual contributor has become, in effect, a manager of small artificial employees.
+Let us begin with the seminal work: :::cite Vaswani et al. **Attention Is All You Need.** 2017. [arXiv](https://arxiv.org/abs/1706.03762) ::: It is also the reason I no longer write emails and every individual contributor has become, in effect, a manager of small artificial employees.
 
-For posterity, I will note that the paper did not invent *Attention*, nor was the Transformer introduced as the decoder-only language model we now colloquially mean when we say "Transformer." Attention had already become common in sequence-to-sequence models, particularly for machine translation, where it was generally attached to a recurrent network. The novelty attributed is asking whether recurrence and convolution were necessary at all. Their answer was, mostly, no (and at the current moment they seem to be right).
+For posterity, I will note that the paper did not invent *attention*, nor was the Transformer introduced as the decoder-only language model we now colloquially mean when we say "Transformer." Attention had already become common in sequence-to-sequence models, particularly for machine translation, where it was generally attached to a recurrent network. The paper's novelty was to ask whether recurrence and convolution were necessary at all. Its answer was, mostly, no—and at the current moment, that answer seems to have held up.
 
-The original Transformer was an encoder-decoder architecture for sequence transduction. That is, it ingested a sentence in one language, constructed a representation of it, and autoregressively :::definition An **autoregressive** model generates a sequence one item at a time, conditioning each new item on those that came before it. ::: produced the corresponding sentence in another. The reason it serves as the foundation for every model today is not only does it perform well on myriad of tasks but that it replaced the sequential-ness at core of the previous architectures with operations that can be parallelized.
+The original Transformer was an encoder-decoder architecture for sequence transduction. That is, it ingested a sentence in one language, constructed a representation of it, and autoregressively :::definition An **autoregressive** model generates a sequence one item at a time, conditioning each new item on those that came before it. ::: produced the corresponding sentence in another. It became the foundation for many modern language models not only because it performed well across a variety of tasks, but also because it replaced the sequential core of previous architectures with operations that can be parallelized.
 
 ### Motivation
 To understand why this mattered, consider the then-prevalent [recurrent neural network](https://en.wikipedia.org/wiki/Recurrent_neural_network). An RNN reads a sequence one token at a time and repeatedly updates a hidden state:
@@ -21,13 +21,13 @@ $$
 $$
 Here, $x_t$ is the representation of the token at position $t$, while $h_t$ is the model's summary of what it has read through position $t$.
 
-This is an incredibly intuitive way to think about how we think about language: we read the first word, update our understanding, read the second word, and continue. Unfortunately, it is irreducibly sequential. To compute $h_{100}$, the model must first compute $h_{99}$; to compute $h_{99}$, it must first compute $h_{98}$. Even during training, when the entire sentence is already known, the hidden states form a dependency chain that cannot be evaluated all at once.
+This is an intuitive model of how we read language: we read the first word, update our understanding, read the second word, and continue. Unfortunately, it is irreducibly sequential. To compute $h_{100}$, the model must first compute $h_{99}$; to compute $h_{99}$, it must first compute $h_{98}$. Even during training, when the entire sentence is already known, the hidden states form a dependency chain that cannot be evaluated all at once.
 
 GPUs are extraordinary at parallel workloads. An RNN instead presents them with a sequence of dependent operations, one that involves waiting for a previous calculation.
 
 There is a second problem. Consider the sentence
 > "Because the trophy was too large for the suitcase, it did not fit."
-When we read the word *it*, both *trophy* and *suitcase* are grammatically plausible antecedents. The phrase *too large for* is what makes *trophy* the sensible referent. A recurrent model can represent this relationship, but information concerning *trophy* must survive every intervening update before it can influence the representation of it. [LSTMs](https://en.wikipedia.org/wiki/Long_short-term_memory) and [GRUs](https://en.wikipedia.org/wiki/Gated_recurrent_unit) were designed in part to make these long-range dependencies easier to preserve, but they did not remove the sequential path itself. In a recurrent network, information at position $i$ may need to pass through $O(|j-i|)$ intermediate states before affecting position $j$.
+When we read the word *it*, both *trophy* and *suitcase* are grammatically plausible antecedents. The phrase *too large for* is what makes *trophy* the sensible referent. A recurrent model can represent this relationship, but information concerning *trophy* must survive every intervening update before it can influence the representation of *it*. [LSTMs](https://en.wikipedia.org/wiki/Long_short-term_memory) and [GRUs](https://en.wikipedia.org/wiki/Gated_recurrent_unit) were designed in part to make these long-range dependencies easier to preserve, but they did not remove the sequential path itself. In a recurrent network, information at position $i$ may need to pass through $O(|j-i|)$ intermediate states before affecting position $j$.
 
 The Transformer proposes something much more direct:
 > let every position communicate with every other position.
@@ -41,7 +41,7 @@ $$
 $$
 The words **query, key,** and **value** should not be taken too literally. They are not predefined linguistic objects. There is no column of $W^Q$ labelled *pronoun antecedent* or one column of $W^K$ labelled *subject of sentence*. The matrices begin as parameters and are learned through gradient descent. If identifying antecedents is useful for minimizing the training objective, the model may discover representations in which certain queries become highly compatible with certain keys.
 
-Given the query $q_i$ at one position and the key $k_j$ at another, compatibility score is measured as
+Given the query $q_i$ at one position and the key $k_j$ at another, a compatibility score is measured as
 $$
 	s_{ij} = q_i k_j^\top.
 $$
@@ -69,7 +69,7 @@ Let’s go back to our sentence
 > "Because the trophy was too large for the suitcase, it did not fit."
 Imagine that we are looking at one attention head in some later layer of the network. By this point, the representation of *it* contains contextual information from previous layers. This head has learned something useful for resolving which earlier object the current token is referring to.
 
-Suppose, the query emitted by "it" is
+Suppose the query emitted by "it" is
 $$
 	q_{\text{it}} = \begin{bmatrix}2 & 1 & -1\end{bmatrix}.
 $$
@@ -98,7 +98,7 @@ Softmax turns these scaled scores into approximately
 $$
 	\begin{bmatrix} 0.874 & 0.043 & 0.039 & 0.043 \end{bmatrix}
 $$
-Informally, about $87\%$ of this head's retrieval is coming from the representation associated with *trophy*. We produce this computation in python in the following snippet
+Informally, about $87\%$ of this head's retrieval is coming from the representation associated with *trophy*. We can reproduce this computation in Python:
 ```python
 import numpy as np
 
@@ -133,33 +133,33 @@ Rather than computing one query at a time, we pack all queries, keys, and values
 $$
 	Q \in \mathbb{R}^{n \times d_k}, K \in \mathbb{R}^{n \times d_k}, V \in \mathbb{R}^{n \times d_v}.
 $$
-Then, $QK^\top \in \mathbb{R}^{n \times n}$. Entry $(i,j)$ is the compatibility between the the query at position $i$ and the key at position $j$. Row $i$ therefore contains every place position $i$ might retrieve information from.
+Then, $QK^\top \in \mathbb{R}^{n \times n}$. Entry $(i,j)$ is the compatibility between the query at position $i$ and the key at position $j$. Row $i$ therefore contains every position from which position $i$ might retrieve information.
 
 Attention mechanisms before the Transformer often used a small neural network to compute compatibility between a query and a key. Dot-product attention instead reduces the entire problem to matrix multiplication.
 
-Softmax then converts each row into positive weights summing to one. We finally multiply by $V$, to obtain the associated weights of the attention mechanism.
+Softmax then converts each row into positive weights summing to one. We finally multiply by $V$ to obtain the corresponding weighted sums of value vectors—the output of the attention mechanism.
 > The keys are not themselves the information being returned. Queries and keys determine where information flows; values determine what flows.
 
 The last part of the equation is the scaling factor $1/\sqrt{d_k}$.
 
 Suppose the components of $q$ and $k$ are independent random variables with mean $0$ and variance $1$. Their dot product is
 $$
-	qk = \sum_{i=1}^{d_k}q_ik_i,
+	q \cdot k = \sum_{i=1}^{d_k}q_ik_i,
 $$
-where each product has variance $1$; thus, the variance of the sum is $\operatorname{Var}(qk) = d_k$ and consequently the standard deviation is $\sqrt{d_k}$. 
+where each product has variance $1$; thus, the variance of the sum is $\operatorname{Var}(q \cdot k) = d_k$ and consequently the standard deviation is $\sqrt{d_k}$.
 
-As dimensionality $d_k$ grows, the dot products naturally become larger in magnitude. Applying softmax are large logits makes it output saturated, tending towards one-hot distributions where exactly one element is one and all other elements are zero. :::note representing categorical data or discrete outcomes as vectors. ::: In those regions, gradients through the softmax can become extremely small—making optimization difficult. The paper introduces the $1/\sqrt{d_k}$ factor precisely to counteract this effect. :::progress 2026-08-08T12:18:45.429Z :::
+As dimensionality $d_k$ grows, the dot products naturally become larger in magnitude. Applying softmax to large logits can push the resulting distribution toward a nearly one-hot vector, with most of the probability mass concentrated on one element. In those saturated regions, gradients through the softmax can become extremely small, making optimization difficult. Dividing by $\sqrt{d_k}$ keeps the scale of the logits roughly stable as $d_k$ grows and counteracts this effect.
 
 ### Multi-head attention
 > One set of attention weights produces one weighted average.
 
-In the example worked above, the attention mechanism offers a response to a single question, "what does *it* refer to?" But language contains many relationships simultaneously. A token will necessarily require information about positional relationships, syntax, punctuation, grammar, any number of other features. Compressing all of those patterns into a single weighted average would force them to compete.
+In the example worked above, the attention mechanism offers a response to a single question, "what does *it* refer to?" But language contains many relationships simultaneously. A token may require information about position, syntax, punctuation, grammar, and any number of other features. Compressing all of those patterns into a single weighted average would force them to compete.
 
-Therefore, the Transformer therefore runs several attention operations in parallel. For head $i$:
+The Transformer therefore runs several attention operations in parallel. For head $i$:
 $$
 	\operatorname{head}_i = \operatorname{Attention}(QW_i^Q, KW_i^K, VW_i^V).
 $$
-The outputs are concatenated and projected back into the model dimension
+The outputs are concatenated and projected back into the model dimension:
 $$
 	\operatorname{MultiHead}(Q,K,V) = \operatorname{Concat}(\operatorname{head}_1, \ldots, \operatorname{head}_h)W^O.
 $$
@@ -182,13 +182,13 @@ Let
 $$
 	X = \langle x_1, \ldots, x_n \rangle \in \mathbb{R}^{n \times d_{\text{model}}}.
 $$
-In self-attention,
+Suppressing the head index, in self-attention,
 $$
 	Q = XW^Q, K = XW^K, V = XW^V.
 $$
 The queries, keys, and values are all constructed from representations belonging to the same sequence. In encoder self-attention, every position may attend to every other position, including itself.
 
-This is subtly different from the attention mechanisms that had commonly appeared in encoder-decoder systems before the Transformer. There, attention often allowed the decoder to look back at representations produced by the encoder. he Transformer retains this operation, which we will call **cross-attention**, but also uses attention as the mechanism through which positions inside the encoder and decoder communicate with one another.
+This is subtly different from the attention mechanisms that had commonly appeared in encoder-decoder systems before the Transformer. There, attention often allowed the decoder to look back at representations produced by the encoder. The Transformer retains this operation, which we will call **cross-attention**, but also uses attention as the mechanism through which positions inside the encoder and decoder communicate with one another.
 
 The original architecture consequently contains three applications of multi-head attention:
 1. encoder self-attention
@@ -207,13 +207,13 @@ $$
 $$
 where $P$ is some permutation matrix. :::note A permutation matrix is a square binary matrix that has exactly one entry of 1 in each row and each column, with all other entries being 0. Multiplying another matrix by a permutation matrix reorders its rows or columns. ::: Then,
 $$
-	Q = X'Q, K = X'K, V = X'V.
+	Q' = X'W^Q = PQ, \quad K' = X'W^K = PK, \quad V' = X'W^V = PV.
 $$
 The attention scores become
 $$
 	Q'K'^\top = PQK^\top P^\top. 
 $$
-The output is permuted in exactly the corresponding way. In other words, self-attention by itself knows that certain token representations exist but not its position in the sequence.
+Because row-wise softmax respects the same permutation, multiplying the resulting weights by $V'=PV$ permutes the output in exactly the corresponding way. In other words, self-attention by itself knows that certain token representations exist but not where they occur in the sequence.
 
 This poses a problem because
 > dog bites man
@@ -248,7 +248,7 @@ $$
 $$
 Recall your trig identities
 $$
-	\sin((\alpha + \beta)\omega) = \sin(\alpha\omega)\cos(\beta\omega) + \cos(\alpha\omega)\cos(\beta\omega)
+	\sin((\alpha + \beta)\omega) = \sin(\alpha\omega)\cos(\beta\omega) + \cos(\alpha\omega)\sin(\beta\omega)
 $$
 and
 $$
@@ -283,11 +283,11 @@ Technically, **attention is not, in fact, all you need.**
 
 The Transformer also contains feed-forward networks, residual connections, normalization, embeddings, positional information, and an output projection.
 
-The original Transformer is an encoder-decoder model. Given an input sequence  of symbol representations
+The original Transformer is an encoder-decoder model. Given an input sequence of symbol representations
 $$
 	x = \langle x_1, \ldots, x_n \rangle
 $$ 
-the encoder constructs a sequence of continuous representation
+the encoder constructs a sequence of continuous representations
 $$
 	z = \langle z_1, \ldots, z_n \rangle.
 $$
@@ -302,39 +302,36 @@ We will discuss what happens inside each.
 #### The position-wise feed-forward network
 Every encoder and decoder layer contains, in addition to attention, a small fully connected neural network:
 $$
-	\operatorname{FFN}(x) = \operatorname{ReLU}(xW_1 + b_i)W_2 + b_2.
+	\operatorname{FFN}(x) = \operatorname{ReLU}(xW_1 + b_1)W_2 + b_2.
 $$
-The first projection usually expands the dimension, generally by four times. So in the case of the paper, given that $d_{\text{model}} = 512$, they set $d_{\text{ff}} = 2048$. It then applies the ReLU function to replace all negative values with zero. Finally, the second matrix operations project it back into the original dimension.
+In the paper, the first projection expands the dimension fourfold: $d_{\text{model}} = 512$ and $d_{\text{ff}} = 2048$. The network then applies ReLU, replacing negative values with zero, before the second matrix multiplication projects the result back into the model dimension.
 
-This network is applied independently to every sequence position, using the same parameters at every position. Given some $X$, the FFN transforms each row separately. There is no communication between tokens inside the feed-forward sublayer.
+This network is applied independently to every sequence position, using the same parameters at every position. Given a matrix $X$, the FFN transforms each row separately. There is no communication between tokens inside the feed-forward sublayer.
 > attention mixes information across positions; the feed-forward network transforms information within each position.
-:::progress 2026-08-10T05:35:42.580Z
 
 #### Residual connection
 Stacking nonlinear transformations creates another problem. Every layer is now responsible for taking the representation from the previous layer and replacing it with something *better*. As networks get deeper, forcing every block to relearn the entire representation can make optimization difficult. The Transformer therefore surrounds each sublayer with a residual connection.
 
 Instead of computing $\operatorname{SubLayer}(x)$, it computes $x + \operatorname{SubLayer}(x)$. The input now has a direct path around the transformation.
 
-A sublayer need not produce an entirely new representation from scratch; it can learn a correction or update to what already exists.
-
-This will become conceptually important when we eventually discuss mechanistic 
+A sublayer need not produce an entirely new representation from scratch; it can learn a correction or update to what already exists. This perspective will become conceptually important when we eventually discuss mechanistic interpretability and the residual stream.
 
 #### Layer normalization
 The original Transformer also normalizes the output of every residual addition.
 
 For a vector $x\in\mathbb{R}^{d_{\text{model}}}$, layer normalization computes its mean and variance across the feature dimension,
 $$
-\mu = \frac{1}{d_{\text{model}}} \sum_{j=i}^{d_{\text{model}}} x_j,
+\mu = \frac{1}{d_{\text{model}}} \sum_{j=1}^{d_{\text{model}}} x_j,
 $$
 as well as
 $$
-	\sigma^2 = \frac{1}{d_{\text{model}}} \sum_{j=i}^{d_{\text{model}}} (x_j - \mu)^2,
+	\sigma^2 = \frac{1}{d_{\text{model}}} \sum_{j=1}^{d_{\text{model}}} (x_j - \mu)^2,
 $$
 and returns
 $$
 	\operatorname{LayerNorm}(x) = \gamma \odot \frac{x-\mu}{\sqrt{\sigma^2 + \epsilon}} + \beta,
 $$
-:::note $\odot$ is the hadamard product. ::: where $\gamma$ and $\beta$ are learned parameters.
+:::note $\odot$ is the Hadamard product. ::: where $\gamma$ and $\beta$ are learned parameters.
 
 > Each token representation can be normalized on its own.
 
@@ -368,9 +365,9 @@ Suppose we are translating
 > "I love boxes"
 into French.
 
-When predicting the French token at position $t$, the model is allowed to use the source sentence and the French tokens preceding position $t$; it can not inspect the correct future French tokens. If ordinary self-attention were used during training, however, nothing would stop position $t$ from looking directly at positions $t+1,t+2,\ldots$.
+When predicting the French token at position $t$, the model is allowed to use the source sentence and the French tokens preceding position $t$; it cannot inspect the correct future French tokens. If ordinary self-attention were used during training, however, nothing would stop position $t$ from looking directly at positions $t+1,t+2,\ldots$.
 
-To avoid this pitfall, the authors introduce a *casual mask*.
+To avoid this pitfall, the authors introduce a *causal mask*.
 
 Before softmax, attention computes the score matrix
 $$
@@ -378,13 +375,13 @@ $$
 $$
 We define a mask $M$,
 $$
-	M =
+	M_{ij} =
 	\begin{cases}
 		0, & j \le i\\
-		-\infty, j > i
+		-\infty, & j > i
 	\end{cases}
 $$
-and compute $\operatorname{softmax}(S + M)$. Since $e^{-\infty} = 0$, every future position receives exactly zero attention probability. For four tokens, the attention pattern looks 
+and compute $\operatorname{softmax}(S + M)$. Since $e^{-\infty} = 0$, every future position receives exactly zero attention probability. For four tokens, the causal visibility pattern looks like
 $$
 	\begin{bmatrix}
 		\checkmark & \times & \times & \times \\
@@ -393,7 +390,7 @@ $$
 		\checkmark & \checkmark & \checkmark & \checkmark
 	\end{bmatrix}
 $$
-Position $1$ can see only itself. Position $2$ can see positions $1$ and $2$. Position $3$ can see $1,2,3$. And so forth.
+Position $1$ can see only itself. Position $2$ can see positions $1$ and $2$. Position $3$ can see positions $1$, $2$, and $3$. And so forth.
 
 #### Cross-attention
 After masked self-attention, each decoder layer performs a second attention operation.
@@ -423,7 +420,13 @@ $$
 $$
 The base model stacks six of these decoder layers.
 
-### The complete Architecture
+### The complete architecture
+
+We can now assemble the entire model. On the encoder side, token embeddings are combined with positional encodings and passed through six identical layers. Each layer applies unrestricted multi-head self-attention followed by a position-wise feed-forward network, with a residual connection and layer normalization around each sublayer.
+
+The decoder receives the target sequence shifted one position to the right, again with positional encodings added. Each of its six layers applies masked self-attention, cross-attention over the encoder output, and a position-wise feed-forward network. Every sublayer is wrapped in the same residual-then-normalize structure.
+
+Finally, a learned linear transformation projects each decoder output into vocabulary-sized logits, and softmax converts those logits into next-token probabilities. During training, the causal mask allows all target positions to be processed in parallel without revealing future tokens. During inference, the decoder still generates one token at a time.
 
 ### Why self-attention?
 Suppose the sequence has length $n$ and each representation has dimension $d$.
@@ -442,4 +445,3 @@ Much of the subsequent history of language-model architecture and systems engine
 
 We are left with one question:
 > **how does it learn anything?**
-:::progress 2026-08-10T06:20:25.608Z
