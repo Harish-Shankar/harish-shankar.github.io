@@ -6,6 +6,7 @@ const {
   escapeHtml,
   parseMarkdown,
   renderNodes,
+  slugify,
 } = require('../lib/markdown');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -37,15 +38,43 @@ function pageHead({ title, description, canonical, type = 'article' }) {
   <title>${safeTitle} — Harish Shankar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Spline+Sans+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&amp;family=Spline+Sans+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/blog/vendor/katex/katex.min.css">
   <link rel="stylesheet" href="/blog/blog.css">
 </head>`;
 }
 
-// Article chrome is intentionally minimal. Authors own every visible heading in
-// Markdown; do not add category labels, dates, status rows, or the full site nav.
+function formatPostDate(value) {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
+function renderTableOfContents(nodes) {
+  const headings = nodes.filter((node) => node.type === 'heading' && (node.level === 2 || node.level === 3));
+  if (headings.length === 0) return '';
+
+  const links = headings.map((heading) => {
+    const id = slugify(heading.value);
+    return `      <li class="article-toc__item article-toc__item--level-${heading.level}">
+        <a href="#${escapeHtml(id)}">${escapeHtml(heading.value)}</a>
+      </li>`;
+  }).join('\n');
+
+  return `  <nav class="article-toc" aria-label="Article contents">
+    <p class="article-toc__label">Contents</p>
+    <ol>
+${links}
+    </ol>
+  </nav>`;
+}
+
 function renderPost(post, buildTimestamp) {
   const { metadata } = post;
   const nodes = [...post.nodes];
@@ -57,28 +86,25 @@ function renderPost(post, buildTimestamp) {
     buildTimestamp,
     timeZone: metadata.timezone || 'Asia/Kolkata',
   });
+  const tableOfContents = renderTableOfContents(nodes);
   const canonical = `https://harish-shankar.github.io/blog/${post.slug}`;
 
   return `${pageHead({ title: metadata.title, description: metadata.description, canonical })}
 <body class="article-page">
-  ${navigation()}
   <main class="article-shell">
-    <a class="back-link" href="/blog">← All writing</a>
+${tableOfContents}
     <article class="article">
+      <a class="back-link" href="/blog">← All writing</a>
       <header class="article-header">
         <h1>${escapeHtml(metadata.title)}</h1>
-        ${metadata.description ? `<p class="article-deck">${escapeHtml(metadata.description)}</p>` : ''}
+        <time class="article-date" datetime="${escapeHtml(metadata.date)}">${escapeHtml(formatPostDate(metadata.date))}</time>
       </header>
-      <nav class="section-marker" aria-label="Current article section" hidden>
-        <span class="section-marker__level" aria-hidden="true"></span>
-        <a class="section-marker__link" href="#"></a>
-      </nav>
       <div class="markdown-body">
 ${articleHtml}
       </div>
     </article>
   </main>
-  <script src="/blog/blog.js"></script>
+  <script src="/blog/blog.js?v=${encodeURIComponent(buildTimestamp)}"></script>
 </body>
 </html>
 `;
