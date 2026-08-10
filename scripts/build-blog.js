@@ -125,7 +125,9 @@ function build() {
   const posts = filenames.map((filename) => {
     const sourcePath = path.join(POSTS_DIRECTORY, filename);
     const originalSource = fs.readFileSync(sourcePath, 'utf8');
-    const source = originalSource.replace(/^([ \t]*):::progress[ \t]*$/gm, `$1:::progress ${buildTimestamp}`);
+    const source = originalSource
+      .replace(/^([ \t]*):::progress[ \t]*$/gm, `$1:::progress ${buildTimestamp}`)
+      .replace(/:::progress[ \t]+:::/g, `:::progress ${buildTimestamp} :::`);
     if (source !== originalSource) fs.writeFileSync(sourcePath, source);
     const parsed = parseMarkdown(source);
     const slug = path.basename(filename, '.md');

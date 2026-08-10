@@ -8,24 +8,27 @@ timezone: Asia/Kolkata
 
 # Markdown element sample
 
-This page contains a paragraph with **strong text**, *emphasized text*, ~~struck text~~, `inline code`, [an inline link](https://example.com), and inline math $p_\theta(x_t \mid x_{<t})$.
-
-:::note
-Margin notes hold useful context without interrupting the main argument. Place the block immediately before the paragraph it belongs to.
-:::
+This page contains a paragraph with **strong text**, *emphasized text*, ~~struck text~~, `inline code`, [an inline link](https://example.com), and inline math $p_\theta(x_t \mid x_{<t})$. :::note Margin notes are anchored to the exact phrase they clarify. :::
 
 ## A second-level heading
 
 ### A third-level heading
 
 #### A fourth-level heading
-:::progress 2026-08-08T06:24:05.000Z
 
 ##### A fifth-level heading
 
 ###### A sixth-level heading
 
 > A blockquote for quotations, excerpts, or a thought that deserves a distinct rhythm.
+
+:::definition Attention head
+An **attention head** maps a query and a set of key-value pairs to a weighted sum of the values:
+
+$$
+\operatorname{Attention}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V.
+$$
+:::
 
 - An unordered list item
 - A second item with **emphasis**
@@ -56,12 +59,8 @@ $$
 
 ![Image placeholder](placeholder)
 
-:::cite
-Vaswani et al. **Attention Is All You Need.** 2017. [arXiv](https://arxiv.org/abs/1706.03762)
-:::
+The placeholder can carry a source citation :::cite Vaswani et al. **Attention Is All You Need.** 2017. [arXiv](https://arxiv.org/abs/1706.03762) ::: without interrupting the article.
 
 ---
 
-Progress markers can separate writing sessions without implying that the post is finished.
-
-:::progress 2026-08-08T06:24:05.000Z
+Progress markers can separate writing sessions without implying that the post is finished. :::progress 2026-08-08T06:24:05.000Z :::

@@ -280,7 +280,47 @@
   margin-bottom: 0;
 }
 
+.definition-block {
+  position: relative;
+  margin: 38px 0;
+  padding: 21px 24px 19px;
+  border: 1px solid rgba(23, 101, 127, 0.2);
+  border-left: 3px solid #17657f;
+  border-radius: 0 4px 4px 0;
+  background: rgba(23, 101, 127, 0.045);
+}
+
+.definition-block__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  margin-bottom: 12px;
+}
+
+.definition-block__label {
+  flex: 0 0 auto;
+  color: #17657f;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.definition-block__term {
+  color: #151512;
+  font-size: 21px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.definition-block__content > :last-child {
+  margin-bottom: 0;
+}
+
 .margin-note {
+  display: block;
   clear: right;
   float: right;
   width: 260px;
@@ -290,6 +330,11 @@
   color: rgba(35, 34, 31, 0.72);
   font-size: 14.5px;
   line-height: 1.45;
+}
+
+.margin-note--inline {
+  margin-top: 0;
+  padding-top: 10px;
 }
 
 .margin-note-label {
@@ -303,8 +348,21 @@
   text-transform: uppercase;
 }
 
+.margin-note--definition {
+  border-top-color: #075e2f;
+}
+
+.margin-note--definition .margin-note-label {
+  margin-bottom: 5px;
+  color: #075e2f;
+}
+
 .margin-note p {
   margin: 0;
+}
+
+.margin-note__content {
+  display: block;
 }
 
 .margin-note a {
@@ -442,8 +500,8 @@
 }
 
 .math-display {
-  margin: 22px 0;
-  padding: 3px 0;
+  margin: 14px 0;
+  padding: 1px 0;
   overflow-x: auto;
   overflow-y: hidden;
   color: #151512;
@@ -517,6 +575,7 @@
 }
 
 .markdown-body .progress-mark {
+  display: block;
   clear: right;
   float: right;
   width: 260px;
@@ -528,6 +587,10 @@
   line-height: 1.4;
   text-align: right;
   text-transform: uppercase;
+}
+
+.markdown-body .progress-mark--inline {
+  margin-top: 0;
 }
 
 .blog-index > header {
@@ -577,11 +640,23 @@
     border-left: 2px solid #17657f;
   }
 
+  .margin-note--definition {
+    border-left-color: #075e2f;
+  }
+
+  .margin-note--inline {
+    margin: 18px 0;
+  }
+
   .markdown-body .progress-mark {
     float: none;
     width: auto;
     margin: 26px 0 18px;
     text-align: right;
+  }
+
+  .markdown-body .progress-mark--inline {
+    margin: 14px 0;
   }
 }
 
@@ -650,6 +725,21 @@
   .markdown-body blockquote {
     padding-left: 18px;
     font-size: 21px;
+  }
+
+  .definition-block {
+    margin: 32px 0;
+    padding: 18px 18px 17px;
+  }
+
+  .definition-block__heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .definition-block .math-display .katex {
+    font-size: 0.82em;
   }
 
   .md-image-placeholder {
