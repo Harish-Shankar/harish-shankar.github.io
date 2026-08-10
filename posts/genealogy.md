@@ -309,3 +309,136 @@ The first projection usually expands the dimension, generally by four times. So 
 This network is applied independently to every sequence position, using the same parameters at every position. Given some $X$, the FFN transforms each row separately. There is no communication between tokens inside the feed-forward sublayer.
 > attention mixes information across positions; the feed-forward network transforms information within each position.
 :::progress 2026-08-10T05:35:42.580Z
+
+#### Residual connection
+Stacking nonlinear transformations creates another problem. Every layer is now responsible for taking the representation from the previous layer and replacing it with something *better*. As networks get deeper, forcing every block to relearn the entire representation can make optimization difficult. The Transformer therefore surrounds each sublayer with a residual connection.
+
+Instead of computing $\operatorname{SubLayer}(x)$, it computes $x + \operatorname{SubLayer}(x)$. The input now has a direct path around the transformation.
+
+A sublayer need not produce an entirely new representation from scratch; it can learn a correction or update to what already exists.
+
+This will become conceptually important when we eventually discuss mechanistic 
+
+#### Layer normalization
+The original Transformer also normalizes the output of every residual addition.
+
+For a vector $x\in\mathbb{R}^{d_{\text{model}}}$, layer normalization computes its mean and variance across the feature dimension,
+$$
+\mu = \frac{1}{d_{\text{model}}} \sum_{j=i}^{d_{\text{model}}} x_j,
+$$
+as well as
+$$
+	\sigma^2 = \frac{1}{d_{\text{model}}} \sum_{j=i}^{d_{\text{model}}} (x_j - \mu)^2,
+$$
+and returns
+$$
+	\operatorname{LayerNorm}(x) = \gamma \odot \frac{x-\mu}{\sqrt{\sigma^2 + \epsilon}} + \beta,
+$$
+:::note $\odot$ is the hadamard product. ::: where $\gamma$ and $\beta$ are learned parameters.
+
+> Each token representation can be normalized on its own.
+
+The 2017 Transformer uses
+$$
+	\operatorname{LayerNorm}(x + \operatorname{SubLayer}(x)).
+$$
+That is, the model performs the sublayer, adds the residual, and then normalizes. This is now generally called **post-norm**.
+
+Later Transformers will reverse the ordering and normalize before the attention or feed-forward operation. We will come back to why.
+
+### The encoder
+We can now construct an encoder layer.
+
+Let $H^{(0)}$ be the sequence of token embeddings after positional encodings have been added.
+
+An encoder layer first performs unrestricted self-attention:
+$$
+	A^{(l)} = \operatorname{LayerNorm}(H^{(l-1)} + \operatorname{MultiHead}(H^{(l-1)}, H^{(l-1)}, H^{(l-1)})).
+$$
+Then it applies the position-wise feed-forward network:
+$$
+	H^{(l)} = \operatorname{LayerNorm}(A^{(l)}  + \operatorname{FFN}(A^{(l)})).
+$$
+The original Transformer repeats this six times.
+
+### The decoder
+The decoder is slightly more complicated.
+
+Suppose we are translating
+> "I love boxes"
+into French.
+
+When predicting the French token at position $t$, the model is allowed to use the source sentence and the French tokens preceding position $t$; it can not inspect the correct future French tokens. If ordinary self-attention were used during training, however, nothing would stop position $t$ from looking directly at positions $t+1,t+2,\ldots$.
+
+To avoid this pitfall, the authors introduce a *casual mask*.
+
+Before softmax, attention computes the score matrix
+$$
+	S = \frac{QK^\top}{\sqrt{d_k}}.
+$$
+We define a mask $M$,
+$$
+	M =
+	\begin{cases}
+		0, & j \le i\\
+		-\infty, j > i
+	\end{cases}
+$$
+and compute $\operatorname{softmax}(S + M)$. Since $e^{-\infty} = 0$, every future position receives exactly zero attention probability. For four tokens, the attention pattern looks 
+$$
+	\begin{bmatrix}
+		\checkmark & \times & \times & \times \\
+		\checkmark & \checkmark & \times & \times \\
+		\checkmark & \checkmark & \checkmark & \times \\
+		\checkmark & \checkmark & \checkmark & \checkmark
+	\end{bmatrix}
+$$
+Position $1$ can see only itself. Position $2$ can see positions $1$ and $2$. Position $3$ can see $1,2,3$. And so forth.
+
+#### Cross-attention
+After masked self-attention, each decoder layer performs a second attention operation.
+
+This time, the queries come from the decoder, while the keys and values come from the encoder:
+$$
+	Q = H_{\text{decoder}} W^Q, K = H_{\text{encoder}} W^K, V = H_{\text{encoder}} W^V.
+$$
+We can interpret this as
+> Given what I have generated so far, which parts of the input sentence are relevant to what I should produce next?
+Cross-attention is not causally masked over the source sequence. Every decoder position can inspect every encoder position because the entire input sentence is already known. :::note One can imagine a decoder representation corresponding to the next French word attending heavily to the English word or phrase it is currently translating. :::
+
+#### A complete decoder layer
+A decoder layer therefore contains three sub-layers.
+
+First, masked self-attention:
+$$
+	D_1 = \operatorname{LayerNorm}(D + \operatorname{MaskedMultiHead}(D, D, D)).
+$$
+Second, cross-attention over the encoder output $H$:
+$$
+	D_2 = \operatorname{LayerNorm}(D_1 + \operatorname{MultiHead}(D_1, H, H)).
+$$
+Lastly, the feed-forward network:
+$$
+	D_3 = \operatorname{LayerNorm}(D_2 + \operatorname{FFN}(D_2)).
+$$
+The base model stacks six of these decoder layers.
+
+### The complete Architecture
+
+### Why self-attention?
+Suppose the sequence has length $n$ and each representation has dimension $d$.
+
+The paper compares the dominant layer types approximately as follows:
+| Layer          | Complexity per layer | Sequential operations | Maximum path length |
+| -------------- | -------------------: | --------------------: | ------------------: |
+| Self-attention |            $O(n^2d)$ |                $O(1)$ |              $O(1)$ |
+| Recurrent      |            $O(nd^2)$ |                $O(n)$ |              $O(n)$ |
+| Convolutional  |           $O(knd^2)$ |                $O(1)$ |       $O(\log_k n)$ |
+
+
+One caveat is important: this does not mean autoregressive generation itself suddenly becomes parallel. When producing text, token $t+1$ still depends on token $t$. The Transformer removed sequence-aligned recurrence inside each layer and allowed positions to be processed in parallel during training. Autoregressive decoding remains sequential across generated tokens.
+
+Much of the subsequent history of language-model architecture and systems engineering can be read as an attempt to retain the benefits of global attention while making that $n^2$ less painful: sparse attention, local attention, recurrence-like memory, kernelized approximations, FlashAttention, KV caching, grouped-query attention, sliding windows, and increasingly elaborate serving systems.
+
+We are left with one question:
+> **how does it learn anything?**
