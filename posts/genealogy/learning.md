@@ -123,3 +123,153 @@ One might think that the embedding matrix used to read tokens and the output mat
 
 Curiously, they need not be.
 :::progress 2026-08-11T05:38:42.094Z
+
+### Weight Tying
+In what we have described above, it seems to follow that we would have one embedding matrix
+$$
+  E \in \mathbb{R}^{V \times d_{\text{model}}}
+$$
+that maps tokens to vectors, and an "output" matrix
+$$
+  W_{\text{out}} \in \mathbb{R}^{V \times d_{\text{model}}}
+$$
+that maps hidden vectors against possible output tokens.
+
+However, I ask you to reframe this. The row $E_v$ asks, in effect
+> what vector should represent token $v$ when I read it?
+while $(W_{\text{out}})_v$ asks
+> what direction in representation space should make me believe the answer is token $v$?
+Press and Wolf :::cite [Press and Wolf](https://arxiv.org/pdf/1608.05859) ::: showed that the output matrix of a neural language model itself behaves as a meaningful word embedding, and found that tying the input and output matrices could improve language-model perplexity while substantially reducing parameter count. In neural translation models, their experiments found that weight tying could reduce model size dramatically without degrading performance. Inan, Khosravi, and Socher independently arrived at closely related weight-sharing results from a loss-based analysis. :::cite [Inan, Khosravi, and Socher](https://arxiv.org/pdf/1611.01462) :::
+
+We therefore impose
+$$
+  W_{\text{out}} = E.
+$$
+With our convention that vocabulary embeddings occupy the rows of $E$, logits become
+$$
+  \ell_t = Eh_t.
+$$
+
+The original Transformer take weight tying one step further: it shares the weight matrix between both embedding layers and the pre-softmax output transformation; this commonly called three-way weight tying. 
+
+Weight tying reduces capacity in exchange for parameter efficiency and an inductive bias that says these two problems ought to share structure. With that being said, there is no mathematical necessity that the best space for interpreting an input token must be identical to the best space for classifying an output token.
+
+We can now read symbols, transform them, and convert the final representations into probabilities.
+
+We still need to define what counts as being wrong.
+
+### The objective
+We are still basking in the sun of 2017, and so the ensuing discussion about training is not what we do with modern day large language models but instead focused on translation.
+
+Let $x = \langle x_1, \ldots, x_n \rangle$ be the source sentence and $y = \langle y_1, \ldots, y_m \rangle$ be the target translation. Our goal is to for the model to assign a high probability to the entire correct translation: $p_\theta(y \mid x)$.
+
+Using one of our earlier remarks, the probability assigned to an entire translation is equivalently the product of the probabilities assigned to each correct next token:
+$$
+  p(y \mid x) = p(y_1 \mid x) \cdot p(y_2 \mid y_1, x) \cdot p(y_3 \mid y_2, y_1, x) \cdot \dots.
+$$
+The product of many small probabilities is numerically awkward and requires a high level of floating point precision, so we log both sides:
+$$
+  \log p_\theta(y \mid x) = \prod_{t=0}^{m-1} \log p_\theta\!\left(y_{t+1} \mid y_{\leq t}, x\right).
+$$
+Training for the maximum likelihood estimation (choosing parameters that maximize the quantity above over the training set), we posit
+$$
+  \theta^\ast = \arg\max_{\theta} \sum_{(x,y) \in \mathcal{D}}\sum_{t=1}^{|y|} \log p_\theta\!\left(y_{t+1} \mid y_{\leq t}, x\right).
+$$
+Optimization libraries conventionally minimize rather than maximize, so we negate it:
+$$
+  \mathcal{L}_{\text{NLL}} = -\sum_{(x,y) \in \mathcal{D}}\sum_{t=1}^{|y|} \log p_\theta\!\left(y_{t+1} \mid y_{\leq t}, x\right).
+$$
+This is the **negative log-likelihood**. For a one-hot target distribution, this is also exactly the usual cross-entropy loss.
+
+It is worth noting for our discussions down-the-line, if we remove the encoder and the source sentence $x$, the objective becomes
+$$
+  p_\theta(x_1,\ldots,x_n) = \prod_{t=1}^n p_\theta(x_t \mid x_{< t}),
+$$
+with loss
+$$
+  \mathcal{L} = - \sum_t \log p_\theta\!\left(x_{t} \mid x_{< t}\right).
+$$
+That is, essentially, the objective that will eventually train many LLMs.
+
+#### Cross-entropy
+Suppose the correct next token is $y$. Let $q$ be its one-hot target distribution:
+$$
+  q_v =
+  \begin{cases}
+    1, & v = y,\\
+    0, & v \ne y.
+  \end{cases}
+$$
+
+The cross-entropy between the target distribution $q$ and model distribution $p$ is
+$$
+  H(q,p) = -\sum_{v=1}^V q_v \log p_v = -\log p_y
+$$
+because only one entry of $q$ is nonzero.
+
+Suppose, the model assigns the correct token probability as $p_y = 0.9$, then the cross-entropy loss is approximately $0.105$. Alternatively, if the model assigns $p_y = 0.01$, the loss would be approximately $4.605$. Thus, severely wrong predictions are appropriately measured.
+
+There is a nice property to make note off.
+
+Let $\ell_j$ denote the logit for vocabulary item $j$. Combining softmax and cross-entropy gives
+$$
+  \frac{\partial \mathcal{L}}{\partial \ell_j} = p_j - q_j.
+$$
+For the correct token, in our case $y$, the loss becomes $p_y - 1$ which is negative unless the model already assigns probability $1$ to the answer. Therefore, gradient descent will *push upwards*.
+
+For every incorrect token, $p_j - q_j > 0$, so so gradient descent *pushes downward*. The more probability the model incorrectly assigns to some alternative, the larger the correction.
+
+#### Causal shifting
+Suppose our desired target sequence is $y_1, y_2, y_3, y_4$. To train
+$$
+  p(y_3 \mid y_2,y_1,x),
+$$
+the model must be shown $y_1$ and $y_2$ but not $y_3$. To train
+$$
+  p(y_4 \mid y_3,y_2,y_1,x),
+$$
+it must see $y_3$.
+
+One naive solution would be to run the model once to predict $y_1$, again to predict $y_2$, again to predict $y_3$, and so forth. That would throw away precisely the parallelism for which we constructed the Transformer.
+
+Suppose the correct translation is :::note $\langle\mathrm{BOS}\rangle$ is a special token that represents the beginning of a sequence, while $\langle\mathrm{EOS}\rangle$ is a special token that represents the end of a sequence. :::
+$$
+  y_1,y_2,y_3,\langle\mathrm{EOS}\rangle.
+$$
+The decoder receives
+| Position | Decoder input | Prediction target |
+| -------- | ------------- | ----------------- |
+| 1        | `<BOS>`       | $y_1$             |
+| 2        | $y_1$         | $y_2$             |
+| 3        | $y_2$         | $y_3$             |
+| 4        | $y_3$         | `<EOS>`           |
+
+Equivalently,
+$$
+  \text{decoder input} =  \langle\mathrm{BOS}\rangle, y_1, y_2, y_3,
+$$
+while
+$$
+  \text{targets} = \{y_1, y_2, y_3, \langle\mathrm{EOS}\rangle\}.
+$$
+
+The causal attention mask we introduced earlier prevents position $t$ from looking to its right. Therefore:
+1. position $1$ sees `<BOS>` and predicts $y_1$;
+2. position $2$ sees `<BOS>`, $y_1$ and predicts $y_2$;
+3. position $3$ sees `<BOS>`, $y_1,$ $y_2$ and predicts $y_3$;
+
+Generation will be sequential; training does not have to be.
+
+#### Teacher forcing
+There is a vital choice made in our discussion so far, that is worth explicitly pointing out now: teacher forcing. That is, using the *true* value rather than the network's own previous output, and feeding it back into the subsequent computation during training. Spelling it out with an example, suppose the target beings
+> The transformer unpacks...
+When learning to predict *unpacks*, we condition the model on the correct prefix
+> The transformer
+regardless of whether the model itself would actually have predicted *transformer* one step earlier.
+
+Teacher forcing combines particularly well with causal masking: since every correct previous token is known, the entire shifted target can enter the decoder at once.
+
+A sentence containing $m$ target tokens therefore gives us roughly $m$ supervised next-token prediction problems in one forward pass. This is one of the reasons the deceptively simple next-token objective scales so effectively.
+:::progress 2026-08-11T11:45:36.271Z
+
+### Training & Inference
