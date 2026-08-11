@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How do models actually learn?">
+  <meta name="author" content="Harish Shankar">
+  <meta property="og:title" content="Learning — The genealogy of language models">
+  <meta property="og:description" content="How do models actually learn?">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://harish-shankar.github.io/blog/genealogy/learning">
+  <meta name="twitter:card" content="summary">
+  <link rel="canonical" href="https://harish-shankar.github.io/blog/genealogy/learning">
+  <title>Learning — The genealogy of language models — Harish Shankar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&amp;family=Spline+Sans+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/blog/vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="/blog/blog.css">
+</head>
+<body class="article-page">
+  <main class="article-shell">
+  <nav class="article-toc" aria-label="Article contents">
+    <p class="article-toc__label">Contents</p>
+    <ol>
+      <li class="article-toc__item article-toc__item--level-2">
+        <a href="/blog/genealogy/#attention-is-all-you-need">Attention is all you need</a>
+      </li>
+      <li class="article-toc__item article-toc__item--level-2 article-toc__item--current">
+        <a href="#learning" data-page-link aria-current="page" aria-expanded="false" aria-controls="toc-learning-subsections">Learning</a>
+        <ol class="article-toc__subsections" id="toc-learning-subsections" hidden>
+          <li class="article-toc__item article-toc__item--level-3">
+            <a href="#tokens" data-local-section>Tokens</a>
+          </li>
+          <li class="article-toc__item article-toc__item--level-4">
+            <a href="#why-sub-word" data-local-section>Why sub-word?</a>
+          </li>
+        </ol>
+      </li>
+    </ol>
+  </nav>
+    <article class="article">
+      <a class="back-link" href="/blog">← All writing</a>
+      <header class="article-header">
+        <h1>The genealogy of language models</h1>
+        <time class="article-date" datetime="2026-08-11">August 11, 2026</time>
+      </header>
+      <div class="markdown-body">
+<h2 id="learning">Learning</h2>
+<p>In the previous section, we built the model and hopefully grounded our intuition to understand the choices made and <em>raison d&#39;être</em>. However, it should be abundantly clear that there is no information regarding how they learn nor why they learn. The matrices <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>W</mi><mi>Q</mi></msup><mo separator="true">,</mo><msup><mi>W</mi><mi>K</mi></msup><mo separator="true">,</mo><msup><mi>W</mi><mi>V</mi></msup></mrow><annotation encoding="application/x-tex">W^Q,W^K,W^V</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0358em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">Q</span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0715em;">K</span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.2222em;">V</span></span></span></span></span></span></span></span></span></span></span></span> do not begin knowing what a noun is. The embedding for <em>dog</em> is not &quot;close&quot; to the embedding for <em>puppy</em>. No attention head has been assigned the job of resolving pronouns. The feed-forward networks contain no handwritten rules of grammar.</p>
+<p>Surprisingly, the motivation for the model to learn is essentially</p>
+<blockquote><p>predict the correct token.</p></blockquote>
+<p>For the original transformer, the one created for translation, we add some specificity:</p>
+<blockquote><p>given the source sentence and the correct target prefix, predict the next target token.</p></blockquote>
+<p>Everything else follows from repeatedly measuring how wrong the model was and changing its parameters so that, next time, the correct token receives slightly more probability, and thus more likely to be chosen. However, before we begin this discussion, it is worth backtracking and clarifying a particular term.</p>
+<h3 id="tokens">Tokens</h3>
+<p>We mentioned previously that the model takes an input sequence of symbol representations <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span></span>. <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span></span> is not the words that compose the sentence, but instead integers produced by a <strong>tokenizer</strong> that converts text into a sequence drawn from some finite vocabulary</p>
+<div class="math-display" role="math"><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="script">V</mi><mo>=</mo><mo stretchy="false">{</mo><mn>1</mn><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><mi>V</mi><mo stretchy="false">}</mo><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">\mathcal{V} = \{1, \ldots, V\}.</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mclose">}</span><span class="mord">.</span></span></span></span></span></div>
+<p>Using our example sentence</p>
+<blockquote><p>&quot;The transformer unpacks unhelpful words into smaller pieces before processing them.&quot;</p></blockquote>
+<p>the <a href="https://platform.openai.com/tokenizer">GPT-5.x Tokenizer</a> splits it into 15 tokens, namely</p>
+<code class="token-strip" aria-label="15 tokens: The transformer unpacks unhelpful words into smaller pieces before processing them."><span class="token-strip__token" data-token-number="1">The</span><span class="token-strip__token" data-token-number="2"> transformer</span><span class="token-strip__token" data-token-number="3"> un</span><span class="token-strip__token" data-token-number="4">packs</span><span class="token-strip__token" data-token-number="5"> un</span><span class="token-strip__token" data-token-number="6">help</span><span class="token-strip__token" data-token-number="7">ful</span><span class="token-strip__token" data-token-number="8"> words</span><span class="token-strip__token" data-token-number="9"> into</span><span class="token-strip__token" data-token-number="10"> smaller</span><span class="token-strip__token" data-token-number="11"> pieces</span><span class="token-strip__token" data-token-number="12"> before</span><span class="token-strip__token" data-token-number="13"> processing</span><span class="token-strip__token" data-token-number="14"> them</span><span class="token-strip__token" data-token-number="15">.</span></code>
+<p>whose corresponding token IDs are</p>
+<div class="math-display" role="math"><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mo stretchy="false">[</mo><mn>976</mn><mo separator="true">,</mo><mn>59595</mn><mo separator="true">,</mo><mn>537</mn><mo separator="true">,</mo><mn>103878</mn><mo separator="true">,</mo><mn>537</mn><mo separator="true">,</mo><mn>11283</mn><mo separator="true">,</mo><mn>1500</mn><mo separator="true">,</mo><mn>6391</mn><mo separator="true">,</mo><mn>1511</mn><mo separator="true">,</mo><mn>13679</mn><mo separator="true">,</mo><mn>12762</mn><mo separator="true">,</mo><mn>2254</mn><mo separator="true">,</mo><mn>12323</mn><mo separator="true">,</mo><mn>1373</mn><mo separator="true">,</mo><mn>13</mn><mo stretchy="false">]</mo><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">[976, 59595, 537, 103878, 537, 11283, 1500, 6391, 1511, 13679, 12762, 2254, 12323, 1373, 13].</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">976</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">59595</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">537</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">103878</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">537</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">11283</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1500</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">6391</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1511</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">13679</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">12762</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">2254</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">12323</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1373</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">13</span><span class="mclose">]</span><span class="mord">.</span></span></span></span></span></div>
+<p>The number of tokens does not match the number of words found nor the number of characters found; tokens are <strong>sub-word</strong>.</p>
+<h4 id="why-sub-word">Why sub-word?</h4>
+<p>Language is considered to be open vocabulary in that it is not restricted to a predefined set of words or phrases; names, compounds, spelling variations, technical terminology, and newly invented words make it impossible to maintain a reasonably sized vocabulary containing every word one might encounter. Tokenizing every character is untenable as the sequences simply become too long.</p>
+<p>Sennrich, Haddow, and Birch<span class="margin-note margin-note--inline margin-note--cite" role="note" aria-label="Citation"><span class="margin-note-label">Citation</span><span class="margin-note__content">Senntich et al. <strong>Neural Machine Translation of Rare Words with Subword Units</strong> <a href="https://arxiv.org/pdf/1508.07909">ARXIV</a></span></span> had shown that byte-pair encoding could be adapted to neural machine translation by decomposing uncommon words into reusable sub-word units. A frequent word might remain a single token; a rare word might become several smaller tokens. This provided a fixed vocabulary without requiring every possible word to have its own entry.</p>
+<p>A larger vocabulary allows more strings to be represented with a single token, shortening sequences, but requires larger embedding and output matrices. A smaller vocabulary reduces those matrices but produces longer sequences. And because ordinary self-attention scales quadratically with sequence length, tokenization ultimately affects far more than vocabulary size.</p>
+<p>Tokenization will eventually become an engineering problem of its own. For now, assume that some tokenizer has handed us a sequence of token IDs.</p>
+      </div>
+    <nav class="series-pagination" aria-label="Series navigation">
+      <a class="series-pagination__item series-pagination__item--previous" href="/blog/genealogy/">
+        <span class="series-pagination__label">Previous</span>
+        <span class="series-pagination__title">Attention is all you need</span>
+      </a>
+      <span class="series-pagination__item series-pagination__item--next is-disabled" aria-disabled="true">
+        <span class="series-pagination__label">Next</span>
+        <span class="series-pagination__title">More coming soon</span>
+      </span>
+    </nav>
+    </article>
+  </main>
+  <script src="/blog/blog.js?v=2026-08-11T04%3A57%3A16.722Z"></script>
+</body>
+</html>
