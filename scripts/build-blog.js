@@ -95,7 +95,11 @@ function renderTocLink({ post, heading, currentPost, local = false, attributes =
     `article-toc__item--level-${heading.level}`,
     isCurrentPage ? 'article-toc__item--current' : '',
   ].filter(Boolean).join(' ');
-  const href = local ? `#${slugify(heading.value)}` : postHref(post, heading);
+  const href = heading.level === 2
+    ? postHref(post)
+    : local
+      ? `#${slugify(heading.value)}`
+      : postHref(post, heading);
   const linkAttributes = [
     local && heading.level > 2 ? 'data-local-section' : '',
     isCurrentPage ? 'data-page-link aria-current="page"' : '',
