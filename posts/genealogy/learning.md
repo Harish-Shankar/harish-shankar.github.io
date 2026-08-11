@@ -48,7 +48,7 @@ Looking back out our sample tokenized sentence and their corresponding token IDs
 $$
   \textit{ful} \rightarrow 1500 \quad \text{and} \quad \textit{ into} \rightarrow 1511 .
 $$
-In relation to the vocabulary size, both of these sub-words are close to each other, yet their is no obvious relation between each morpheme. :::definition A **morpheme** is the smallest unit of meaning in a language. It cannot be broken into smaller parts without losing its meaning. :::
+In relation to the vocabulary size, both of these sub-words are close to each other, yet there is no obvious relation between each morpheme. :::definition A **morpheme** is the smallest unit of meaning in a language. It cannot be broken into smaller parts without losing its meaning. :::
 
 The fact that two tokens have nearby IDs tells us nothing about whether the corresponding pieces of language are similar. Before the Transformer can operate on tokens, we therefore need to place them into a continuous vector space. Let
 $$
@@ -65,7 +65,7 @@ $E$ is a learned parameter matrix.
 
 At initialization, the vector associated with *dog* has no particular reason to resemble the vector associated with *puppy*. If they eventually become related, it is because using similar representations for them happened to make the model better at its training objective: **predicting the correct token**.
 
-In Vaswani et al.'s original paper, :::note They specify this scaling but do not give a derivation for it. ::: the embedding us multiplied by $\sqrt{d_{\text{model}}}$ before the positional (encoding) information is added. Thus, the initial representation is
+In Vaswani et al.'s original paper, :::note They specify this scaling but do not give a derivation for it. ::: the embedding is multiplied by $\sqrt{d_{\text{model}}}$ before the positional (encoding) information is added. Thus, the initial representation is
 $$
   h_t^{(0)} = \sqrt{d_{\text{model}}}E_{x_t} + \operatorname{PE}_t.
 $$
