@@ -152,7 +152,7 @@ $$
 $$
 where each product has variance $1$; thus, the variance of the sum is $\operatorname{Var}(q \cdot k) = d_k$ and consequently the standard deviation is $\sqrt{d_k}$.
 
-As dimensionality $d_k$ grows, the dot products naturally become larger in magnitude. Applying softmax to large logits can push the resulting distribution toward a nearly one-hot vector, with most of the probability mass concentrated on one element. In those saturated regions, gradients through the softmax can become extremely small, making optimization difficult. Dividing by $\sqrt{d_k}$ keeps the scale of the logits roughly stable as $d_k$ grows and counteracts this effect.
+As dimensionality $d_k$ grows, the dot products naturally become larger in magnitude. Applying softmax to large logits :::definition Conventionally, logits are the raw outputs from the final layer of a network [W&B](https://wandb.ai/amanarora/Written-Reports/reports/Understanding-Logits-Sigmoid-Softmax-and-Cross-Entropy-Loss-in-Deep-Learning--Vmlldzo0NDMzNTU3). More precisely, if $p$ is a probability, the logit of $p$ is the logarithm of the odds, i.e. $\operatorname{logit}(p) = \ln(p/1-p)$. [Wiki](https://en.wikipedia.org/wiki/Logit) ::: can push the resulting distribution toward a nearly one-hot vector, with most of the probability mass concentrated on one element. In those saturated regions, gradients through the softmax can become extremely small, making optimization difficult. Dividing by $\sqrt{d_k}$ keeps the scale of the logits roughly stable as $d_k$ grows and counteracts this effect.
 
 ### Multi-head attention
 > One set of attention weights produces one weighted average.
