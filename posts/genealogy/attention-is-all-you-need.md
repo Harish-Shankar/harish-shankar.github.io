@@ -308,7 +308,7 @@ Every encoder and decoder layer contains, in addition to attention, a small full
 $$
 	\operatorname{FFN}(x) = \operatorname{ReLU}(xW_1 + b_1)W_2 + b_2.
 $$
-In the paper, the first projection expands the dimension fourfold: $d_{\text{model}} = 512$ and $d_{\text{ff}} = 2048$. The network then applies ReLU, replacing negative values with zero, before the second matrix multiplication projects the result back into the model dimension.
+:::note Rectified linear unit is an [activation function](https://en.wikipedia.org/wiki/Activation_function) defined as the non-negative part of its argument: $\operatorname{ReLU}(x) = \max(0,x).$ [Wiki](https://en.wikipedia.org/wiki/Rectified_linear_unit) ::: In the paper, the first projection expands the dimension fourfold: $d_{\text{model}} = 512$ and $d_{\text{ff}} = 2048$. The network then applies ReLU, replacing negative values with zero, before the second matrix multiplication projects the result back into the model dimension.
 
 This network is applied independently to every sequence position, using the same parameters at every position. Given a matrix $X$, the FFN transforms each row separately. There is no communication between tokens inside the feed-forward sublayer.
 > attention mixes information across positions; the feed-forward network transforms information within each position.
@@ -345,7 +345,8 @@ $$
 $$
 That is, the model performs the sublayer, adds the residual, and then normalizes. This is now generally called **post-norm**.
 
-Later Transformers will reverse the ordering and normalize before the attention or feed-forward operation. We will come back to why.
+:::note **pre-norm**: $x + \operatorname{SubLayer}(\operatorname{LayerNorm}(x))$. :::
+Later Transformers will reverse the ordering (commonly referred to as **pre-norm**) and normalize before the attention or feed-forward operation. We will come back to why.
 
 ### The encoder
 We can now construct an encoder layer.
