@@ -319,6 +319,95 @@
   margin-bottom: 0;
 }
 
+.remark-block {
+  margin: 34px 0;
+  border: 0;
+  border-top: 1px solid rgba(35, 34, 31, 0.18);
+  border-bottom: 1px solid rgba(35, 34, 31, 0.18);
+  background: transparent;
+}
+
+.remark-block__summary {
+  display: grid;
+  min-height: 54px;
+  box-sizing: border-box;
+  grid-template-columns: minmax(60px, auto) minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 2px;
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 120ms ease;
+}
+
+.remark-block__summary::-webkit-details-marker {
+  display: none;
+}
+
+.remark-block__summary:hover {
+  background: rgba(7, 94, 47, 0.035);
+}
+
+.remark-block__summary:focus-visible {
+  outline: 2px solid #17657f;
+  outline-offset: 3px;
+}
+
+.remark-block__label {
+  color: #075e2f;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.remark-block__title {
+  overflow: hidden;
+  color: #151512;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remark-block__toggle {
+  position: relative;
+  grid-column: 3;
+  width: 18px;
+  height: 18px;
+}
+
+.remark-block__toggle::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid #075e2f;
+  border-bottom: 1.5px solid #075e2f;
+  content: '';
+  transform: translate(-65%, -50%) rotate(-45deg);
+  transition: transform 120ms ease;
+}
+
+.remark-block[open] .remark-block__toggle::before {
+  transform: translate(-50%, -65%) rotate(45deg);
+}
+
+.remark-block__content {
+  padding: 1px 36px 19px 72px;
+  color: rgba(35, 34, 31, 0.78);
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
+.remark-block__content > :last-child {
+  margin-bottom: 0;
+}
+
 .margin-note {
   display: block;
   clear: right;
@@ -1248,6 +1337,30 @@
   .article-page .markdown-body blockquote {
     padding-left: 16px;
     font-size: 18px;
+  }
+
+  .remark-block__summary {
+    grid-template-columns: minmax(0, 1fr) 18px;
+    gap: 4px 12px;
+    padding: 13px 2px;
+  }
+
+  .remark-block__label {
+    grid-column: 1;
+  }
+
+  .remark-block__title {
+    grid-column: 1;
+    white-space: normal;
+  }
+
+  .remark-block__toggle {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
+
+  .remark-block__content {
+    padding: 2px 30px 16px 0;
   }
 
   .series-pagination {

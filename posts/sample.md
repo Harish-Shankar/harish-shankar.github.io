@@ -30,6 +30,10 @@ $$
 $$
 :::
 
+:::remark Why keep a remark collapsible?
+Remarks carry useful context that is not required for the main argument. Collapsing them preserves the article's reading rhythm while leaving the detail close at hand.
+:::
+
 - An unordered list item
 - A second item with **emphasis**
 - [x] A completed task item
