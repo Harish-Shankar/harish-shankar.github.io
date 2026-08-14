@@ -2,20 +2,19 @@
   box-sizing: border-box;
 }
 
+:root {
+  --color-eggshell: #f9f7f0;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
+  background-color: var(--color-eggshell);
 }
 
 body {
   min-height: 100vh;
-  background: #f4efe4;
-  background-image:
-    radial-gradient(rgba(120, 96, 54, 0.03) 0.8px, transparent 0.9px),
-    radial-gradient(rgba(120, 96, 54, 0.02) 0.8px, transparent 0.9px);
-  background-size: 18px 18px, 18px 18px;
-  background-position: 0 0, 9px 9px;
   font-family: 'Newsreader', Georgia, serif;
   color: #23221f;
   -webkit-font-smoothing: antialiased;
