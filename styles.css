@@ -3,14 +3,14 @@
 }
 
 :root {
-  --color-eggshell: #f9f7f0;
+  --color-background: #ffffff;
 }
 
 html,
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--color-eggshell);
+  background-color: var(--color-background);
 }
 
 body {

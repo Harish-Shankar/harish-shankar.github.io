@@ -84,7 +84,7 @@
   padding: 0 11px;
   border: 1px solid rgba(35, 34, 31, 0.13);
   border-radius: 999px;
-  background: rgba(249, 247, 240, 0.93);
+  background: rgba(255, 255, 255, 0.93);
   box-shadow: 0 3px 14px rgba(35, 34, 31, 0.08);
   opacity: 0;
   pointer-events: none;
@@ -233,14 +233,16 @@
 
 .markdown-body a {
   color: #075e2f;
-  text-decoration-color: rgba(7, 94, 47, 0.45);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
+  border-bottom: 1px solid rgba(15, 63, 36, 0.5);
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .markdown-body a:hover {
   color: #082f19;
-  text-decoration-color: #082f19;
+  border-bottom-color: #082f19;
+  background: rgba(15, 63, 36, 0.06);
 }
 
 .markdown-body strong {
