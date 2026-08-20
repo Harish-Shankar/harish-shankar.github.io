@@ -241,6 +241,10 @@ function renderBlogIndex(posts) {
   }
   const visiblePosts = posts.filter((post) =>
     !post.metadata.series || firstBySeries.get(post.metadata.series)?.slug === post.slug);
+  visiblePosts.sort((left, right) =>
+    (left.metadata.status === 'reference' ? 1 : 0) - (right.metadata.status === 'reference' ? 1 : 0) ||
+    right.metadata.date.localeCompare(left.metadata.date) ||
+    left.metadata.title.localeCompare(right.metadata.title));
   const entries = visiblePosts.map(({ metadata, slug }) => `
         <li>
           <a href="/blog/${escapeHtml(slug)}">
