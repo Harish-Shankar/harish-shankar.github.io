@@ -9,16 +9,16 @@ permalink: genealogy/learning
 ---
 
 ## How do models actually learn?
-In the previous section, we built the model and hopefully grounded our intuition to understand the choices made and their *raison d'être*. What should be abundantly clear, however, is that nothing in that construction tells us how the model learns, nor why it learns. Nothing in that construction knows any language. $W^Q,W^K,W^V$ do not begin knowing what a noun is. The embedding for *dog* is not close to the embedding for *puppy*. No attention head has been assigned the job of resolving pronouns. The feed-forward networks contain no handwritten rules of grammar.
+In the previous section, we built the model and hopefully grounded our intuition to understand the choices made and their *raison d'être*. What should be abundantly clear, however, is that nothing in that construction tells us how the model learns, nor why it learns. Nothing in that construction knows language: the matrices $W^Q,W^K,W^V$ do not begin knowing what a noun is; the embedding for *dog* is not close to the embedding for *puppy*; no attention head has been assigned the job of resolving pronouns; the feed-forward networks contain no handwritten rules of grammar.
 
 Surprisingly, the motivation for the model to learn is essentially
 > predict the correct token.
 For the original Transformer, the one created for translation, we add some specificity:
 > given the source sentence and the correct target prefix, predict the next target token.
-Everything else follows from repeatedly measuring how wrong the model was and changing its parameters so that, next time, the correct token receives slightly more probability, and is thus more likely to be chosen. Before we begin this discussion, however, it is worth backtracking and clarifying a term I have been using loosely for an entire post.
+Everything else follows from repeatedly measuring how wrong the model was and changing its parameters so that, next time, the correct token receives slightly more probability, and is turn more likely to be chosen. Before we begin this discussion, however, it is worth backtracking and clarifying a term I used loosely in the previous post.
 
 ### Tokens
-We mentioned previously that the model takes an input sequence of symbol representations $x$. $x$ is not the words that compose the sentence, but instead integers produced by a **tokenizer** that converts text into a sequence drawn from some finite vocabulary
+We mentioned previously that the model takes an input sequence of symbol representations $x$. $x$ are not the words that compose the sentence, but instead integers produced by a **tokenizer** that converts text into a sequence drawn from some finite vocabulary
 $$
   \mathcal{V} = \{1, \ldots, V\}.
 $$
@@ -35,15 +35,13 @@ $$
 The number of tokens matches neither the number of words nor the number of characters; tokens are **sub-word**.
 
 #### Why sub-word?
-Language is open vocabulary; in that it is not restricted to a predefined set of words or phrases; names, compounds, spelling variations, technical terminology, and newly invented words make it impossible to maintain a reasonably sized vocabulary containing every word one might encounter. So, unless we are willing to constantly document and tokenize every new word and its spelling variations from all across the globe, it is just untenable as tokenizing approach.
+Language is open vocabulary; in that it is not restricted to a predefined set of words or phrases; names, compounds, spelling variations, technical terminology, and newly invented words make it impossible to maintain a reasonably sized vocabulary containing every word one might encounter. So, unless we are willing to constantly document and tokenize every new word and its spelling variations from all across the globe, it is just untenable as tokenizing approach. A larger vocabulary represents more strings per token and shortens sequences, but enlarges the embedding and output matrices. 
 
-Character-level tokenization also doesn't make much sense. The sentence above is 83 characters and 15 tokens. Since ordinary self-attention scales quadratically with sequence length, a character-level tokenizer would ask for roughly thirty times the attention work to say the same thing.
+Character-level tokenization also doesn't make much sense. The sentence above is 83 characters. Since self-attention scales quadratically with sequence length, a character-level tokenizer would ask for roughly thirty times the attention work to say the same thing. A smaller vocabulary shrinks those matrices and lengthens sequences.
 
 Sennrich, Haddow, and Birch :::cite Sennrich et al. **Neural Machine Translation of Rare Words with Subword Units.** 2015. [PDF](https://arxiv.org/pdf/1508.07909) ::: had shown that byte-pair encoding could be adapted to neural machine translation by decomposing uncommon words into reusable sub-word units. A frequent word might remain a single token; a rare word might become several smaller tokens. This provided a fixed vocabulary without requiring every possible word to have its own entry.
 
-The remaining choice is where to sit between the two failures. A larger vocabulary represents more strings per token and shortens sequences, but enlarges the embedding and output matrices. A smaller vocabulary shrinks those matrices and lengthens sequences, and length is the expensive axis.
-
-Sub-word tokenization is a compromise nobody would have designed on purpose, and it is still what everything runs on. It will eventually become an engineering problem of its own, and I suspect a post of its own. For now, assume some tokenizer has handed us a sequence of token IDs and has been thanked for its trouble.
+Thus, we land on sub-word tokenization. It will eventually become an engineering problem of its own, and I suspect a post of its own. For now, assume some tokenizer has handed us a sequence of token IDs.
 
 ### Embeddings
 Looking back at our tokenized sentence and its IDs, we see

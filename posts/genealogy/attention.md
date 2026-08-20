@@ -9,7 +9,7 @@ permalink: genealogy
 ---
 
 # The genealogy of language models
-This is my foray into surveying the landscape of modern language models. My aim is to recover the techniques and ideas behind modern systems and consolidate them here. The motivation is rather selfish: I want to understand why these systems work. This is not intended to be an end-all resource. As I delve further into the subject, I expect to veer into adjacent topics—especially the techniques used to improve state-of-the-art models.
+This is my foray into surveying the landscape of modern language models. My aim is to recover the techniques and ideas behind modern systems and consolidate them here. I want to understand why and how these systems work. This is not intended to be an end-all resource, though I hope my deep-dive is rather comprehensive. As I delve further into the subject, I expect to veer into adjacent topics—especially the techniques used to improve state-of-the-art models.
 
 ## Attention is all you need
 Let us begin with the seminal work: :::cite Vaswani et al. **Attention Is All You Need.** 2017. [arXiv](https://arxiv.org/abs/1706.03762) ::: It is also the reason I no longer write emails and every individual contributor has become, in effect, a manager of small artificial employees.
