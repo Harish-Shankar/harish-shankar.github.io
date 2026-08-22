@@ -65,3 +65,42 @@ Something worth noticing in our decomposition is that roughly twenty-seven perce
  
 Training proceeded for 100 epochs on minibatches of 64 contiguous sequences of 512 tokens, which is $32{,}768$ tokens per optimization step.
 :::progress 2026-08-22T13:15:24.978Z
+
+### What's changed
+I count four things that have changed with respect to the architecture.
+
+#### Activation function
+Vaswani et al. used the rectified linear unit (ReLU) function, $\operatorname{ReLU}(x) = \max(0,x)$. Radford et al. substitute it with the Gaussian error linear unit (GELU) :::cite Hendrycks and Gimpel. **Gaussian Error Linear Units.** 2016. [arXiv](https://arxiv.org/abs/1606.08415) :::, $\operatorname{GELU}(x) = x \cdot \Phi(x)$, where $\Phi$ denotes the standard normal cumulative distribution function.
+
+We can reinterpret ReLU as $x \cdot \mathbb{1}[x > 0]$. GELU replaces the indicator with $\Phi(x) = \mathbb{P}[Z \le x]$ for $Z \sim \mathcal{N}(0,1)$, which is the probability that the input exceeds a draw from the normal distribution. The gate is thereby made soft, and the function, unlike ReLU, becomes smooth at the origin.
+
+| $x$ | $\Phi(x)$ | $\operatorname{GELU}(x)$ | $\operatorname{ReLU}(x)$ |
+| --- | --- | --- | --- |
+| $-2$ | $0.023$ | $-0.045$ | $0$ |
+| $-1$ | $0.159$ | $-0.159$ | $0$ |
+| $-0.752$ | $0.226$ | $-0.170$ | $0$ |
+| $0$ | $0.500$ | $0$ | $0$ |
+| $1$ | $0.841$ | $0.841$ | $1$ |
+| $2$ | $0.977$ | $1.955$ | $2$ |
+
+A couple of nice things to note. GELU is not monotonic; it descends to a minimum of approximately $-0.170$ near $x \approx -0.752$ before returning toward zero. The more practically relevant, concerns the derivative,
+$$
+  \frac{d}{dx}\left[x \cdot \Phi(x)\right] = \Phi(x) + x \cdot \varphi(x),
+$$
+which at $x = -1$ evaluates to $-0.083$. ReLU that has been driven negative receives no gradient whatsoever and may remain in that state indefinitely. GELU in the same position continues to receive a small signal, and can therefore recover.
+
+:::remark A practical note
+The released implementation uses the tanh approximation
+$$
+  0.5x\left(1 + \tanh\left[\sqrt{2/\pi}\,(x + 0.044715x^3)\right]\right),
+$$
+which agrees with $x\Phi(x)$ to roughly four decimal places over the range that matters and was faster than the error function on the hardware of the period.
+:::
+
+#### Learned positional embeddings
+The sinusoids are gone. In their place, $W_p \in \mathbb{R}^{512 \times 768}$ is an ordinary parameter matrix containing one row per position, trained by gradient descent alongside everything else.
+
+We spent a considerable amount of effort in the first section establishing and justifying the sinusoidal construction: displacement by a fixed offset corresponds to a linear transformation whose coefficients depend only on that offset, so that a relationship such as *five tokens earlier* is in principle recoverable by simple linear operations. Learned embeddings discard all of it; there is no reason for the vector at position $400$ to bear any particular relationship to the vector at position $401$, and whatever relationship they eventually acquire must be discovered from the data.
+
+This provides freedom for the model to represent position however happens to help prediction rather than however we assume it should. There is no row $513$, and so there is no defined behavior beyond the trained context length. Vaswani et al. had explicitly speculated that the sinusoidal encoding might permit extrapolation to sequences longer than those seen in training. GPT-1, instead, accepts a hard context window in return.
+:::progress 2026-08-22T16:09:45.401Z

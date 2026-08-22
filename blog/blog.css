@@ -644,6 +644,15 @@
   font-size: 1.12em;
 }
 
+.katex .enclosing.mathbbm {
+  letter-spacing: 0.05em;
+}
+
+.katex .enclosing.mathbbm .mathrm {
+  font-style: normal;
+  text-shadow: 0.045em 0 0 currentColor;
+}
+
 .table-wrap {
   margin: 38px 0;
   overflow-x: auto;
