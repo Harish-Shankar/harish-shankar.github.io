@@ -1388,3 +1388,267 @@
     font-size: 14.5px;
   }
 }
+
+/* Cross-references: a pointer to a passage elsewhere in the series, previewed in place. */
+.markdown-body a.xref {
+  border-bottom: 1px dashed rgba(23, 101, 127, 0.55);
+  color: #17657f;
+  white-space: normal;
+}
+
+.markdown-body a.xref:hover,
+.markdown-body a.xref.is-previewed {
+  border-bottom-color: #17657f;
+  border-bottom-style: solid;
+  background: rgba(23, 101, 127, 0.07);
+  color: #0f4f66;
+}
+
+.markdown-body a.xref:focus-visible {
+  outline: 2px solid #17657f;
+  outline-offset: 2px;
+}
+
+.xref__mark {
+  margin-left: 0.2em;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 0.62em;
+  opacity: 0.6;
+  vertical-align: 0.35em;
+}
+
+.xref-anchor {
+  display: inline;
+  scroll-margin-top: 90px;
+}
+
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  scroll-margin-top: 60px;
+}
+
+.xref-previews[hidden] {
+  display: none;
+}
+
+.xref-popover {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  overflow-y: auto;
+  width: min(400px, calc(100vw - 24px));
+  box-sizing: border-box;
+  padding: 16px 20px 15px;
+  border: 1px solid rgba(35, 34, 31, 0.16);
+  border-radius: 5px;
+  background: var(--color-background, #ffffff);
+  box-shadow: 0 10px 34px rgba(35, 34, 31, 0.16), 0 2px 6px rgba(35, 34, 31, 0.07);
+  color: #23221f;
+  font-family: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
+  opacity: 0;
+  overscroll-behavior: contain;
+  transform: translateY(-3px);
+  transition: opacity 130ms ease, transform 130ms ease;
+}
+
+.xref-popover[data-placement='above'] {
+  transform: translateY(3px);
+}
+
+.xref-popover.is-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.xref-popover[hidden] {
+  display: none;
+}
+
+.xref-preview__source {
+  margin: 0 0 5px;
+  color: #17657f;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.xref-preview__title {
+  margin: 0 0 11px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(35, 34, 31, 0.12);
+  color: #151512;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.xref-preview__body {
+  color: rgba(35, 34, 31, 0.84);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.xref-preview__body > :first-child {
+  margin-top: 0;
+}
+
+.xref-preview__body > :last-child {
+  margin-bottom: 0;
+}
+
+.xref-preview__body p {
+  margin: 0 0 10px;
+}
+
+.xref-preview__body h3,
+.xref-preview__body h4,
+.xref-preview__body h5,
+.xref-preview__body h6 {
+  margin: 14px 0 7px;
+  color: #151512;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.xref-preview__body ul,
+.xref-preview__body ol {
+  margin: 0 0 10px;
+  padding-left: 1.3em;
+}
+
+.xref-preview__body li {
+  margin: 4px 0;
+}
+
+.xref-preview__body li::marker {
+  color: #17657f;
+}
+
+.xref-preview__body a {
+  border-bottom: 1px solid rgba(15, 63, 36, 0.4);
+  color: #075e2f;
+  text-decoration: none;
+}
+
+/* Marginalia, floats, and wide blocks all have to behave inside a 400px panel. */
+.xref-preview__body .margin-note,
+.xref-preview__body .progress-mark,
+.xref-preview__body .progress-mark--inline {
+  display: block;
+  float: none;
+  width: auto;
+  margin: 12px 0;
+  padding: 8px 0 0 12px;
+  border-top: 0;
+  border-left: 2px solid rgba(23, 101, 127, 0.5);
+  font-size: 13px;
+}
+
+.xref-preview__body .margin-note-label {
+  margin-bottom: 4px;
+}
+
+.xref-preview__body .math-display {
+  overflow-x: auto;
+  margin: 12px 0;
+  font-size: 0.86em;
+}
+
+.xref-preview__body .code-block {
+  margin: 12px 0;
+  font-size: 0.8em;
+}
+
+.xref-preview__body .table-wrap {
+  overflow-x: auto;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.xref-preview__body .definition-block,
+.xref-preview__body .remark-block {
+  margin: 12px 0;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.xref-preview__body img,
+.xref-preview__body .md-image-placeholder {
+  max-width: 100%;
+}
+
+.xref-preview__truncation {
+  margin: 0;
+  color: rgba(35, 34, 31, 0.45);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+}
+
+.xref-preview__link {
+  display: inline-block;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(35, 34, 31, 0.12);
+  color: #075e2f;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-decoration: none;
+  text-transform: uppercase;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.xref-preview__link::after {
+  content: ' \2192';
+}
+
+.xref-preview__link:hover {
+  color: #082f19;
+}
+
+/* Landing on a referenced passage, from this page or another one. */
+.markdown-body :target,
+.markdown-body :has(> .xref-anchor:target) {
+  animation: xref-landing 1800ms ease-out;
+}
+
+@keyframes xref-landing {
+  0%,
+  55% {
+    background-color: rgba(23, 101, 127, 0.12);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+@media (max-width: 640px) {
+  .xref-popover {
+    width: calc(100vw - 24px);
+    padding: 15px 17px 14px;
+  }
+
+  .xref-preview__body {
+    font-size: 14.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xref-popover {
+    transform: none;
+    transition: none;
+  }
+
+  .markdown-body :target,
+    .markdown-body :has(> .xref-anchor:target) {
+    animation: none;
+  }
+}

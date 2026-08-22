@@ -3,8 +3,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {
+  ANCHOR_PATTERN,
   escapeHtml,
   parseMarkdown,
+  renderInline,
   renderNodes,
   slugify,
 } = require('../lib/markdown');
@@ -12,6 +14,10 @@ const {
 const ROOT = path.resolve(__dirname, '..');
 const POSTS_DIRECTORY = path.join(ROOT, 'posts');
 const BLOG_DIRECTORY = path.join(ROOT, 'blog');
+
+/* A cross-reference preview shows the opening of the section it points at, not the whole of it. */
+const EXCERPT_BLOCK_LIMIT = 4;
+const EXCERPT_CHARACTER_LIMIT = 620;
 
 function navigation() {
   return `<nav class="site-nav" aria-label="Primary navigation">
@@ -81,6 +87,153 @@ function seriesPostsFor(post, posts) {
   return posts
     .filter((candidate) => candidate.metadata.series === post.metadata.series)
     .sort((left, right) => seriesOrder(left) - seriesOrder(right));
+}
+
+function articleNodes(post) {
+  const nodes = [...post.nodes];
+  if (nodes[0]?.type === 'heading' && nodes[0].level === 1 && nodes[0].value.trim() === post.metadata.title?.trim()) {
+    nodes.shift();
+  }
+  return nodes;
+}
+
+function forEachNodeText(node, visit) {
+  if (typeof node.value === 'string') visit(node.value);
+  if (typeof node.title === 'string') visit(node.title);
+  for (const item of node.items || []) visit(item.value);
+  for (const cell of node.headers || []) visit(cell);
+  for (const row of node.rows || []) for (const cell of row) visit(cell);
+  for (const child of node.children || []) forEachNodeText(child, visit);
+}
+
+function nodeTextLength(node) {
+  let length = 0;
+  forEachNodeText(node, (value) => { length += value.length; });
+  return length;
+}
+
+/* Every heading, plus every :::anchor marker, is addressable by a cross-reference. */
+function buildAnchorIndex(posts) {
+  const index = new Map();
+
+  for (const post of posts) {
+    const nodes = articleNodes(post);
+    const anchors = new Map();
+    let heading = null;
+
+    nodes.forEach((node, position) => {
+      if (node.type === 'heading') {
+        heading = node;
+        const id = slugify(node.value);
+        if (id && !anchors.has(id)) {
+          anchors.set(id, { kind: 'heading', position, level: node.level, title: node.value });
+        }
+      }
+      forEachNodeText(node, (value) => {
+        for (const match of value.matchAll(ANCHOR_PATTERN)) {
+          if (anchors.has(match[1])) {
+            throw new Error(`${post.filename} defines the anchor "${match[1]}" more than once.`);
+          }
+          anchors.set(match[1], {
+            kind: 'anchor',
+            position,
+            title: heading ? heading.value : post.metadata.title,
+          });
+        }
+      });
+    });
+
+    index.set(post.slug, { post, nodes, anchors });
+  }
+
+  return index;
+}
+
+function collectExcerpt(nodes, entry) {
+  if (entry.kind === 'anchor') return { blocks: [nodes[entry.position]], truncated: false };
+
+  const blocks = [];
+  let characters = 0;
+  let truncated = false;
+
+  for (let position = entry.position + 1; position < nodes.length; position += 1) {
+    const node = nodes[position];
+    if (node.type === 'heading' && node.level <= entry.level) break;
+    if (node.type === 'progress') continue;
+    if (blocks.length >= EXCERPT_BLOCK_LIMIT || characters >= EXCERPT_CHARACTER_LIMIT) {
+      truncated = true;
+      break;
+    }
+    blocks.push(node);
+    characters += nodeTextLength(node);
+  }
+
+  return { blocks, truncated };
+}
+
+function previewId(slug, anchor) {
+  return `xref-${slug.replace(/[^a-z\d]+/g, '-')}--${anchor}`;
+}
+
+function renderPreview({ entry, target, href, id, options }) {
+  const { blocks, truncated } = collectExcerpt(target.nodes, entry);
+  const section = sectionHeading(target.post);
+  const source = section ? section.value : target.post.metadata.title;
+  const ellipsis = truncated ? '\n        <p class="xref-preview__truncation" aria-hidden="true">…</p>' : '';
+
+  return `      <article class="xref-preview" id="${escapeHtml(id)}">
+        <p class="xref-preview__source">${renderInline(source, options)}</p>
+        <p class="xref-preview__title">${renderInline(entry.title, options)}</p>
+        <div class="xref-preview__body">
+${renderNodes(blocks, options)}
+        </div>${ellipsis}
+        <a class="xref-preview__link" href="${escapeHtml(href)}">Read in full</a>
+      </article>`;
+}
+
+/* Resolves :::ref targets against the anchor index and collects the previews the page needs. */
+function createReferenceResolver({ post, index, previews, options }) {
+  const resolve = (target, raw) => {
+    const slug = target.slug || post.slug;
+    const entryIndex = index.get(slug);
+    if (!entryIndex) {
+      throw new Error(`${post.filename} references the post "${slug}", which does not exist.`);
+    }
+
+    let anchor = target.anchor;
+    if (!anchor) {
+      const section = sectionHeading(entryIndex.post);
+      anchor = section ? slugify(section.value) : '';
+    }
+
+    const entry = entryIndex.anchors.get(anchor);
+    if (!entry) {
+      throw new Error(`${post.filename} references "${raw}", but ${entryIndex.post.filename} has no heading or anchor "${anchor}".`);
+    }
+
+    return {
+      entry,
+      target: entryIndex,
+      slug,
+      anchor,
+      href: slug === post.slug ? `#${anchor}` : `/blog/${slug}/#${anchor}`,
+    };
+  };
+
+  /* References inside a preview stay plain links, so previews never nest. */
+  const previewOptions = {
+    ...options,
+    resolveReference: (target, raw) => ({ href: resolve(target, raw).href }),
+  };
+
+  return (target, raw) => {
+    const resolved = resolve(target, raw);
+    const id = previewId(resolved.slug, resolved.anchor);
+    if (!previews.has(id)) {
+      previews.set(id, renderPreview({ ...resolved, id, options: previewOptions }));
+    }
+    return { href: resolved.href, previewId: id };
+  };
 }
 
 function postHref(post, heading) {
@@ -191,17 +344,22 @@ ${item('next', next, 'More coming soon')}
     </nav>`;
 }
 
-function renderPost(post, posts, buildTimestamp) {
+function renderPost(post, posts, index, buildTimestamp) {
   const { metadata } = post;
-  const nodes = [...post.nodes];
-  if (nodes[0]?.type === 'heading' && nodes[0].level === 1 && nodes[0].value.trim() === metadata.title?.trim()) {
-    nodes.shift();
-  }
-
-  const articleHtml = renderNodes(nodes, {
+  const nodes = articleNodes(post);
+  const previews = new Map();
+  const renderOptions = {
     buildTimestamp,
     timeZone: metadata.timezone || 'Asia/Kolkata',
+  };
+
+  const articleHtml = renderNodes(nodes, {
+    ...renderOptions,
+    resolveReference: createReferenceResolver({ post, index, previews, options: renderOptions }),
   });
+  const previewMarkup = previews.size > 0
+    ? `      <div class="xref-previews" hidden>\n${[...previews.values()].join('\n')}\n      </div>\n`
+    : '';
   const tableOfContents = renderTableOfContents(post, nodes, posts);
   const pagination = renderSeriesPagination(post, posts);
   const section = sectionHeading(post);
@@ -223,7 +381,7 @@ ${tableOfContents}
       <div class="markdown-body">
 ${articleHtml}
       </div>
-${pagination}
+${previewMarkup}${pagination}
     </article>
   </main>
   <script src="/blog/blog.js?v=${encodeURIComponent(buildTimestamp)}"></script>
@@ -320,6 +478,8 @@ function build() {
     }
   }
 
+  const anchorIndex = buildAnchorIndex(posts);
+
   fs.mkdirSync(BLOG_DIRECTORY, { recursive: true });
   const katexRoot = path.dirname(require.resolve('katex/package.json'));
   const katexDestination = path.join(BLOG_DIRECTORY, 'vendor', 'katex');
@@ -329,7 +489,7 @@ function build() {
   for (const post of posts) {
     const destination = path.join(BLOG_DIRECTORY, post.slug);
     fs.mkdirSync(destination, { recursive: true });
-    fs.writeFileSync(path.join(destination, 'index.html'), renderPost(post, posts, buildTimestamp));
+    fs.writeFileSync(path.join(destination, 'index.html'), renderPost(post, posts, anchorIndex, buildTimestamp));
   }
   fs.writeFileSync(path.join(BLOG_DIRECTORY, 'index.html'), renderBlogIndex(posts));
   process.stdout.write(`Built ${posts.length} post${posts.length === 1 ? '' : 's'}.\n`);

@@ -9,7 +9,7 @@ permalink: genealogy/learning
 ---
 
 ## How do models actually learn?
-In the previous section, we built the model and hopefully grounded our intuition to understand the choices made and their *raison d'être*. What should be abundantly clear, however, is that nothing in that construction tells us how the model learns, nor why it learns. Nothing in that construction knows language: the matrices $W^Q,W^K,W^V$ do not begin knowing what a noun is; the embedding for *dog* is not close to the embedding for *puppy*; no attention head has been assigned the job of resolving pronouns; the feed-forward networks contain no handwritten rules of grammar.
+In :::ref genealogy the previous section :::, we built the model and hopefully grounded our intuition to understand the choices made and their *raison d'être*. What should be abundantly clear, however, is that nothing in that construction tells us how the model learns, nor why it learns. Nothing in that construction knows language: the matrices $W^Q,W^K,W^V$ do not begin knowing what a noun is; the embedding for *dog* is not close to the embedding for *puppy*; no attention head has been assigned the job of resolving pronouns; the feed-forward networks contain no handwritten rules of grammar.
 
 Surprisingly, the motivation for the model to learn is essentially
 > predict the correct token.
@@ -397,7 +397,7 @@ $$
 $$
 decaying with the inverse square root of the step. Putting $d_{\text{model}} = 512$ into those expressions: the peak at step $4000$ is about $7 \times 10^{-4}$, and by step $100{,}000$ the rate has fallen to about $1.4 \times 10^{-4}$. *Begin cautiously and grow the updates; once learning is established, shrink them*. The $d_{\text{model}}^{-1/2}$ factor additionally makes the whole schedule smaller as the model gets wider.
 
-Why warm up at all? The paper offers the schedule as *obvious* and derives none of it, but later work supplies an illuminating piece of hindsight. Recall from the previous section that the original Transformer normalizes *after* the residual addition,
+Why warm up at all? The paper offers the schedule as *obvious* and derives none of it, but later work supplies an illuminating piece of hindsight. Recall from :::ref genealogy#layer-normalization the previous section ::: that the original Transformer normalizes *after* the residual addition,
 $$
   \operatorname{LayerNorm}(x + \operatorname{SubLayer}(x)),
 $$

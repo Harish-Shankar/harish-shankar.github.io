@@ -27,11 +27,11 @@ The other concept generally attributed is making Transformers decoder-only. For 
 To me there seems to be parallel between the perception of GPT-1 & Transformers and what they actually did. Both are touted as these landmark papers in the space (I agree!) but what is revolutionary about them is the construction of the models not the ideas. Both of them took concepts that were common-place and the forefront of research, dropped some previously highly-regarded obvious (recurrence and convolution for Transformers; labelled data and encoders for GPT-1), and showed incredible promise.
 
 ### Goodbye Encoder!
-Recall the three applications of multi-head attention in the original architecture:
+Recall the three applications of :::ref genealogy#multi-head-attention multi-head attention ::: in the original architecture:
 1. encoder self-attention
 2. masked decoder self-attention
 3. encoder-decoder cross-attention
-As I alluded to in the first section, we would revisit some of these mechanisms. GPT-1 retains only the masked decoder—getting rid of the encoder entirely. Cross-attention exists so that the decoder may consult a source sentence, and encoder self-attention exists so that the source sentence has a representation worth consulting. If the task is simply to continue a passage of text, there is no source sentence, and both operations are left without anything to do.
+As I alluded to in :::ref genealogy the first section :::, we would revisit some of these mechanisms. GPT-1 retains only the masked decoder—getting rid of the encoder entirely. :::ref genealogy#cross-attention Cross-attention ::: exists so that the decoder may consult a source sentence, and encoder self-attention exists so that the source sentence has a representation worth consulting. If the task is simply to continue a passage of text, there is no source sentence, and both operations are left without anything to do.
 
 What remains is a stack of blocks containing two sub-layers apiece: :::note GPT-1 remains post-norm. :::
 $$
@@ -54,12 +54,12 @@ $$
 $$
   P(u) = \operatorname{softmax}(h_n W_e^\top)
 $$
-where $W_e$ is the token embedding matrix and $W_p$ the position embedding matrix. It is worth observing that the output projection in the final line is $W_e^\top$, the transpose of the input embedding matrix. This is exactly weight tying.
+where $W_e$ is the token embedding matrix and $W_p$ the position embedding matrix. It is worth observing that the output projection in the final line is $W_e^\top$, the transpose of the input embedding matrix. This is exactly :::ref genealogy/learning#weight-tying weight tying :::.
 
 #### Counting parameters
 The model is composed of twelve layers, $d_{\text{model}} = 768$, twelve attention heads, $d_{\text{ff}} = 3072$, and a context length of $512$.
 
-Within each layer :::note This ignores biases together with the LayerNorm gain and shift parameters, which amount collectively to a few tens of thousands. :::, attention contributes four square projections, $W^Q$, $W^K$, $W^V$, and $W^O$, giving $4 \times 768^2 = 2{,}359{,}296$, while the feed-forward network contributes two rectangular ones, $2 \times 768 \times 3072 = 4{,}718{,}592$, for a total of $7{,}077{,}888$ parameters per block, or $84{,}934{,}656$ across the twelve. The paper specifies a byte-pair encoding with $40{,}000$ merges; once base characters and special tokens are included the released vocabulary contains $40{,}478$ entries, so the embedding matrix accounts for $40{,}478 \times 768 = 31{,}087{,}104$, and the learned positional table for a further $512 \times 768 = 393{,}216$. Summing these gives $116{,}414{,}976$.
+Within each layer :::note This ignores biases together with the LayerNorm gain and shift parameters, which amount collectively to a few tens of thousands. :::, attention contributes four square projections, $W^Q$, $W^K$, $W^V$, and $W^O$, giving $4 \times 768^2 = 2{,}359{,}296$, while the feed-forward network contributes two rectangular ones, $2 \times 768 \times 3072 = 4{,}718{,}592$, for a total of $7{,}077{,}888$ parameters per block, or $84{,}934{,}656$ across the twelve. The paper specifies a :::ref genealogy/learning#tokens byte-pair encoding ::: with $40{,}000$ merges; once base characters and special tokens are included the released vocabulary contains $40{,}478$ entries, so the embedding matrix accounts for $40{,}478 \times 768 = 31{,}087{,}104$, and the learned positional table for a further $512 \times 768 = 393{,}216$. Summing these gives $116{,}414{,}976$.
 
 Something worth noticing in our decomposition is that roughly twenty-seven percent of the model consists of the embedding matrix, which is to say that better than a quarter of GPT-1's capacity is a *lookup table*. This ratio inverts as models grow, and it is one of the more reliable ways to see at a glance how large a model is.
  
