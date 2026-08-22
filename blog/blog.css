@@ -456,6 +456,15 @@
   display: block;
 }
 
+.margin-note__entry {
+  display: block;
+}
+
+.margin-note__entry + .margin-note__entry,
+.margin-note p + p {
+  margin-top: 9px;
+}
+
 .margin-note a {
   font-family: 'Spline Sans Mono', ui-monospace, monospace;
   font-size: 0.72em;
